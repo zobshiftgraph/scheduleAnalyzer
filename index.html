@@ -430,7 +430,7 @@
         Supports <strong>WMT Scheduler</strong> (ZOB) worksheet grids and simple <strong>Name · Date · Start · End</strong> rows.
         Shift times use the official <strong>ZOB Shift Legend</strong> (127 codes).
         <strong>Mid shifts</strong> (e.g. 2230, 2100) start the <em>evening before</em> their schedule column date.
-        For WMT: paste the full <em>Edit Current Schedule</em> page (View Source or Save As), use the bookmarklet, or paste TSV from the clipboard.
+        For WMT: paste the full <em>Edit Non Published</em> schedule page (View Source or Save As), use the bookmarklet, or paste TSV from the clipboard.
       </p>
       <div class="settings" style="margin-bottom:0.75rem">
         <label>
@@ -465,7 +465,7 @@
         <a id="bookmarkletLink" href="#">📋 Copy Schedule Table</a>
         <ol>
           <li>Drag the button above to your bookmarks bar.</li>
-          <li>Open WMT <strong>Schedules → Edit Current</strong>, pick your area (e.g. AREA 8), and click the bookmark.</li>
+          <li>Open WMT <strong>Schedules → Edit Non Published</strong>, pick your area (e.g. AREA 8), and click the bookmark.</li>
           <li>Come back here and click "Parse from Clipboard", or paste into the box — analysis runs automatically.</li>
         </ol>
       </div>
@@ -549,7 +549,7 @@
         var sel=window.getSelection?window.getSelection().toString():'';
         if(sel.trim()) rows=sel.trim().split(/\\r?\\n/);
       }
-      if(!rows.length){ alert('No schedule table found. Open WMT Edit Current Schedule (tblEditGrid) or select table text.'); return; }
+      if(!rows.length){ alert('No schedule table found. Open WMT Schedules → Edit Non Published (tblEditGrid) or select table text.'); return; }
       copyText(rows.join('\\n'),'Copied '+rows.length+' row(s) from '+tables.length+' table(s).\\n\\nOpen shift-analyzer.html and click Parse from Clipboard.');
     })();`;
 
@@ -895,7 +895,7 @@
       if (!tsv) {
         throw new Error(
           'Could not find WMT Edit Schedule grid (#tblEditGrid) with person rows in pasted HTML. ' +
-          'Save or copy source from Schedules → Edit Current (with the schedule table visible).'
+          'Save or copy source from Schedules → Edit Non Published (with the schedule table visible).'
         );
       }
       const result = parseWMT(tsv);
@@ -1302,7 +1302,7 @@
       if (!shifts.length) {
         errors.push(
           assignmentsFound === 0 && personRows > 0
-            ? 'WMT person rows found but day cells are empty. Paste the full Edit Current Schedule page HTML, or use the bookmarklet so input values are captured.'
+            ? 'WMT person rows found but day cells are empty. Paste the full Edit Non Published schedule page HTML, or use the bookmarklet so input values are captured.'
             : 'No WMT shift assignments could be parsed from this paste.'
         );
       }
@@ -1779,4 +1779,4 @@
     });
   </script>
 </body>
-</html> 
+</html>
