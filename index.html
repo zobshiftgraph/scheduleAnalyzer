@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shift Schedule Analyzer</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3a4f;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --warn-bg: rgba(245, 158, 11, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    main {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      box-sizing: border-box;
+    }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: var(--text);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    button, .btn-link {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: var(--accent-hover); }
+
+    button.secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+
+    button.secondary:hover { background: var(--border); }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.8rem;
+      padding: 0.75rem;
+      resize: vertical;
+    }
+
+    textarea:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
+    .settings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .settings label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--muted);
+    }
+
+    .settings input[type="number"] {
+      width: 4rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      padding: 0.25rem 0.4rem;
+    }
+
+    .bookmarklet-box {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .bookmarklet-box a {
+      display: inline-block;
+      background: var(--warn);
+      color: #1a1a1a;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .bookmarklet-box a:hover { filter: brightness(1.08); }
+
+    .bookmarklet-box ol {
+      margin: 0.75rem 0 0 1.25rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .bookmarklet-box ol li { margin-bottom: 0.25rem; }
+
+    #summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .stat {
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    .stat .value {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .stat .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat.danger .value { color: var(--danger); }
+    .stat.warn .value { color: var(--warn); }
+    .stat.ok .value { color: var(--ok); }
+
+    .person-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .person-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .person-header h3 { font-size: 1rem; }
+
+    .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .badge.danger { background: var(--danger-bg); color: var(--danger); }
+    .badge.warn { background: var(--warn-bg); color: var(--warn); }
+    .badge.ok { background: rgba(34, 197, 94, 0.12); color: var(--ok); }
+
+    .type-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.12rem 0.45rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .type-badge.type-leave { background: rgba(139, 156, 179, 0.18); color: var(--muted); }
+    .type-badge.type-special { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .type-code { color: var(--muted); font-size: 0.78rem; margin-left: 0.35rem; }
+    tr.row-leave td { color: var(--muted); }
+    tr.row-leave .type-code { font-style: italic; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr.row-warn { background: var(--warn-bg); }
+    tr.row-danger { background: var(--danger-bg); }
+
+    .streak-box {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .streak-box.danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+    }
+
+    .parse-error {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    .help-text {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .schedule-grid-wrap {
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: 75vh;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 100%;
+    }
+
+    .schedule-grid {
+      width: 100%;
+      table-layout: fixed;
+      border-collapse: collapse;
+      font-size: clamp(0.55rem, 0.45vw + 0.45rem, 0.72rem);
+      font-family: "Cascadia Code", "Consolas", monospace;
+    }
+
+    .schedule-grid th,
+    .schedule-grid td {
+      padding: 0.2rem 0.15rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.2;
+    }
+
+    .schedule-grid thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface2);
+      z-index: 2;
+      font-size: clamp(0.5rem, 0.4vw + 0.4rem, 0.68rem);
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: none;
+      letter-spacing: normal;
+      white-space: normal;
+      vertical-align: bottom;
+      padding: 0.25rem 0.1rem;
+    }
+
+    .schedule-grid thead th .day-wd {
+      display: block;
+      font-size: 0.95em;
+      opacity: 0.85;
+    }
+
+    .schedule-grid thead th .day-md {
+      display: block;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .schedule-grid .name-col {
+      text-align: left;
+      position: sticky;
+      left: 0;
+      background: var(--surface2);
+      z-index: 1;
+      font-weight: 600;
+      width: 9%;
+      max-width: 9rem;
+      padding-left: 0.35rem;
+    }
+
+    .schedule-grid thead .name-col { z-index: 3; }
+    .schedule-grid tbody .name-col { background: var(--bg); }
+
+    .schedule-grid tbody tr.row-active td,
+    .schedule-grid tbody tr.row-active th.name-col {
+      background: rgba(59, 130, 246, 0.22) !important;
+      box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45);
+    }
+
+    .schedule-grid tbody tr { cursor: pointer; }
+
+    .schedule-grid .day-col { width: calc(91% / var(--day-cols, 16)); }
+
+    .schedule-grid td.cell-violation {
+      background: var(--danger-bg);
+      color: var(--danger);
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px var(--danger);
+    }
+
+    .schedule-grid td.cell-leave { color: var(--muted); font-style: italic; }
+    .schedule-grid td.cell-special { color: #93c5fd; }
+
+    .grid-legend {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .grid-legend .viol::before {
+      content: '';
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-right: 0.35rem;
+      border-radius: 2px;
+      vertical-align: middle;
+      background: var(--danger-bg);
+      box-shadow: inset 0 0 0 1px var(--danger);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Shift Schedule Analyzer</h1>
+    <p>Paste or import schedule data to check rest between shifts and consecutive-day streaks.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Input Data</h2>
+      <p class="help-text">
+        Supports <strong>WMT Scheduler</strong> (ZOB) worksheet grids and simple <strong>Name · Date · Start · End</strong> rows.
+        Shift times use the official <strong>ZOB Shift Legend</strong> (127 codes).
+        <strong>Mid shifts</strong> (e.g. 2230, 2100) start the <em>evening before</em> their schedule column date.
+        For WMT: paste the full <em>Edit Current Schedule</em> page (View Source or Save As), use the bookmarklet, or paste TSV from the clipboard.
+      </p>
+      <div class="settings" style="margin-bottom:0.75rem">
+        <label>
+          WMT person filter (optional):
+          <input type="text" id="personFilter" placeholder="e.g. GT - LEWIS or THOMPSON" style="width:14rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0.25rem 0.4rem">
+        </label>
+      </div>
+      <textarea id="inputData" placeholder="Paste WMT page HTML, TSV from bookmarklet, or Name/Date/Start/End rows..."></textarea>
+      <div class="controls">
+        <button id="btnClipboard" class="secondary">Parse from Clipboard</button>
+        <button id="btnClear" class="secondary">Clear</button>
+      </div>
+      <div class="settings">
+        <label>
+          Minimum rest (hours):
+          <input type="number" id="minRestHours" value="10" min="0" step="0.5">
+        </label>
+        <label>
+          Max consecutive days:
+          <input type="number" id="maxConsecutiveDays" value="6" min="1" step="1">
+        </label>
+      </div>
+      <div id="parseError" class="parse-error" style="display:none"></div>
+    </section>
+
+    <section>
+      <h2>Bookmarklet — Grab Data from a Webpage</h2>
+      <p class="help-text">
+        Drag the button below to your bookmarks bar. On a schedule page, click it to copy table data to your clipboard, then return here and click "Parse from Clipboard".
+      </p>
+      <div class="bookmarklet-box">
+        <a id="bookmarkletLink" href="#">📋 Copy Schedule Table</a>
+        <ol>
+          <li>Drag the button above to your bookmarks bar.</li>
+          <li>Open WMT <strong>Schedules → Edit Current</strong>, pick your area (e.g. AREA 8), and click the bookmark.</li>
+          <li>Come back here and click "Parse from Clipboard", or paste into the box — analysis runs automatically.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="summarySection" style="display:none">
+      <h2>Summary</h2>
+      <div id="summary"></div>
+    </section>
+
+    <section id="resultsSection" style="display:none">
+      <h2>Schedule</h2>
+      <div class="grid-legend">
+        <span class="viol">Insufficient rest before shift (&lt; min hours or overlap)</span>
+      </div>
+      <div id="results"></div>
+    </section>
+  </main>
+
+  <script>
+    // ── Bookmarklet source (also embedded in the page link) ──
+    const BOOKMARKLET = `(function(){
+      function copyText(text,msg){
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(text).then(function(){ alert(msg); })
+            .catch(function(){ prompt('Copy this data:',text); });
+        }else{ prompt('Copy this data:',text); }
+      }
+      function extractWMTGrid(){
+        var grid=document.getElementById('tblEditGrid');
+        if(!grid) return null;
+        var rows=[],headerDone=false;
+        grid.querySelectorAll('tr').forEach(function(tr){
+          if(tr.querySelector('input[type="submit"],input[id^="submit"]')) return;
+          var tds=tr.querySelectorAll('td');
+          if(!tds.length) return;
+          var label=(tds[0].innerText||tds[0].textContent||'').trim().replace(/\\s+/g,' ');
+          if(!headerDone&&(label.toUpperCase()==='NAME'||/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/.test(label)||/\\d{1,2}\\/\\d{1,2}\\/\\d{4}/.test((tds[1]&&tds[1].innerText)||''))){
+            var hdr=['NAME'];
+            for(var i=1;i<tds.length;i++){
+              hdr.push((tds[i].innerText||tds[i].textContent||'').trim().replace(/\\s+/g,' '));
+            }
+            if(hdr.length>2){ rows.push(hdr.join('\\t')); headerDone=true; }
+            return;
+          }
+          if(!/^[A-Z]{2}\\s*-\\s*.+/i.test(label)) return;
+          var cells=[label];
+          tr.querySelectorAll('input[id^="EditScheduleDetails_"]').forEach(function(inp){
+            if(/InitialEditScheduleDetails/.test(inp.name||inp.id||'')) return;
+            cells.push((inp.value||'').trim());
+          });
+          if(cells.length>1) rows.push(cells.join('\\t'));
+        });
+        return rows.length>1?rows:null;
+      }
+      var wmt=extractWMTGrid();
+      if(wmt){
+        copyText(wmt.join('\\n'),'Copied WMT schedule: '+wmt.length+' row(s) from Edit Schedule grid.\\n\\nOpen shift-analyzer.html and click Parse from Clipboard.');
+        return;
+      }
+      function cellText(c){
+        var inp=c.querySelector('input:not([type="hidden"]),textarea');
+        if(inp&&(inp.value||'').trim()) return inp.value.trim();
+        var sel=c.querySelector('select');
+        if(sel&&sel.selectedIndex>=0){
+          var o=sel.options[sel.selectedIndex];
+          if(o&&(o.value||o.text||'').trim()) return (o.value||o.text).trim();
+        }
+        return (c.innerText||c.textContent||'').trim().replace(/\\s+/g,' ');
+      }
+      var rows=[],tables=document.querySelectorAll('table');
+      tables.forEach(function(table){
+        table.querySelectorAll('tr').forEach(function(tr){
+          var cells=tr.querySelectorAll('th,td');
+          if(!cells.length) return;
+          var line=Array.from(cells).map(cellText).join('\\t');
+          if(line.replace(/\\t/g,'').trim()) rows.push(line);
+        });
+      });
+      if(!rows.length){
+        var sel=window.getSelection?window.getSelection().toString():'';
+        if(sel.trim()) rows=sel.trim().split(/\\r?\\n/);
+      }
+      if(!rows.length){ alert('No schedule table found. Open WMT Edit Current Schedule (tblEditGrid) or select table text.'); return; }
+      copyText(rows.join('\\n'),'Copied '+rows.length+' row(s) from '+tables.length+' table(s).\\n\\nOpen shift-analyzer.html and click Parse from Clipboard.');
+    })();`;
+
+    document.getElementById('bookmarkletLink').href =
+      'javascript:' + encodeURIComponent(BOOKMARKLET);
+
+    // ── Date parsing ──
+    const MONTHS = {
+      jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,
+      may:4,jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,sept:8,september:8,
+      oct:9,october:9,nov:10,november:10,dec:11,december:11
+    };
+
+    function parseDate(str) {
+      if (!str) return null;
+      str = str.trim();
+
+      // ISO: YYYY-MM-DD
+      let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+
+      // Day prefix: Mon 7/6/2026 or Monday, July 6, 2026
+      m = str.match(/(?:\w+[,]?\s+)?(\w+)\s+(\d{1,2})[,]?\s+(\d{4})/i);
+      if (m && MONTHS[m[1].toLowerCase()] !== undefined) {
+        return new Date(+m[3], MONTHS[m[1].toLowerCase()], +m[2]);
+      }
+
+      // Day prefix: Mon 7/6/2026 (numeric month)
+      m = str.match(/(?:\w+\s+)?(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if (m) {
+        let y = +m[3];
+        if (y < 100) y += 2000;
+        return new Date(y, +m[1] - 1, +m[2]);
+      }
+
+      // MM/DD/YYYY or M/D/YY
+      m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+      if (m) {
+        let y = +m[3];
+        if (y < 100) y += 2000;
+        return new Date(y, +m[1] - 1, +m[2]);
+      }
+
+      // Fallback
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function parseTime(str) {
+      if (!str) return null;
+      str = str.trim().toUpperCase();
+
+      // HH:MM AM/PM
+      let m = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (m) {
+        let h = +m[1], min = +m[2];
+        const ap = m[3];
+        if (ap === 'PM' && h < 12) h += 12;
+        if (ap === 'AM' && h === 12) h = 0;
+        return { hours: h, minutes: min };
+      }
+
+      // H AM/PM (no minutes)
+      m = str.match(/^(\d{1,2})\s*(AM|PM)$/i);
+      if (m) {
+        let h = +m[1];
+        if (m[2] === 'PM' && h < 12) h += 12;
+        if (m[2] === 'AM' && h === 12) h = 0;
+        return { hours: h, minutes: 0 };
+      }
+
+      // 24h decimal-ish: 900, 1430
+      m = str.match(/^(\d{3,4})$/);
+      if (m) {
+        const s = m[1].padStart(4, '0');
+        return { hours: +s.slice(0, 2), minutes: +s.slice(2) };
+      }
+
+      return null;
+    }
+
+    function combineDateTime(date, time) {
+      const d = new Date(date);
+      d.setHours(time.hours, time.minutes, 0, 0);
+      return d;
+    }
+
+    function formatDate(d) {
+      return d.toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', year: 'numeric' });
+    }
+
+    function formatTime(d) {
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function formatDuration(ms) {
+      if (ms < 0) return '—';
+      const totalMin = Math.round(ms / 60000);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      if (h === 0) return `${m}m`;
+      if (m === 0) return `${h}h`;
+      return `${h}h ${m}m`;
+    }
+
+    function dateKey(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    // ── CSV/TSV parsing ──
+    function splitRow(line) {
+      if (line.includes('\t')) return line.split('\t').map(c => c.trim());
+      // Simple CSV split (handles quoted fields)
+      const cols = [];
+      let cur = '', inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQuote = !inQuote; continue; }
+        if (ch === ',' && !inQuote) { cols.push(cur.trim()); cur = ''; continue; }
+        cur += ch;
+      }
+      cols.push(cur.trim());
+      return cols;
+    }
+
+    function isHeaderRow(cols) {
+      const joined = cols.join(' ').toLowerCase();
+      const keywords = ['name', 'employee', 'date', 'start', 'end', 'shift', 'worker', 'staff'];
+      let hits = 0;
+      for (const kw of keywords) {
+        if (joined.includes(kw)) hits++;
+      }
+      return hits >= 2;
+    }
+
+    function detectColumns(cols) {
+      const lower = cols.map(c => c.toLowerCase());
+      const find = (...terms) => lower.findIndex(c => terms.some(t => c.includes(t)));
+
+      let nameIdx = find('name', 'employee', 'worker', 'staff', 'person');
+      let dateIdx = find('date', 'day', 'scheduled');
+      let startIdx = find('start', 'begin', 'in', 'from');
+      let endIdx = find('end', 'finish', 'out', 'to');
+
+      if (nameIdx < 0 && dateIdx < 0 && startIdx < 0 && endIdx < 0) {
+        // Positional fallback: Name, Date, Start, End
+        if (cols.length >= 4) return { nameIdx: 0, dateIdx: 1, startIdx: 2, endIdx: 3 };
+        return null;
+      }
+
+      // Fill missing positional slots
+      const used = new Set([nameIdx, dateIdx, startIdx, endIdx].filter(i => i >= 0));
+      const avail = [0,1,2,3].filter(i => !used.has(i) && i < cols.length);
+      if (nameIdx < 0) nameIdx = avail.shift() ?? 0;
+      if (dateIdx < 0) dateIdx = avail.shift() ?? 1;
+      if (startIdx < 0) startIdx = avail.shift() ?? 2;
+      if (endIdx < 0) endIdx = avail.shift() ?? 3;
+
+      return { nameIdx, dateIdx, startIdx, endIdx };
+    }
+
+    const COL_LABELS = { nameIdx: 'Name', dateIdx: 'Date', startIdx: 'Start', endIdx: 'End' };
+
+    // ZOB facility shift legend (WMT Scheduler 1.4 — 127 codes, extracted from Shift Legend)
+    const ZOB_SHIFT_LEGEND = {
+      '0000':{s:'00:00',e:'08:00'},'0000-7':{s:'00:00',e:'07:00'},'0000-9':{s:'00:00',e:'09:00'},'0000F':{s:'00:00',e:'08:00'},
+      '0400':{s:'04:00',e:'12:00'},'0430-10':{s:'04:30',e:'14:30'},'0500-10':{s:'05:00',e:'15:00'},'0500-6':{s:'05:00',e:'11:00'},
+      '0500-9':{s:'05:00',e:'14:00'},'0530':{s:'05:30',e:'13:30'},'0530-10':{s:'05:30',e:'15:30'},'0530-7':{s:'05:30',e:'12:30'},
+      '0530-9':{s:'05:30',e:'14:30'},'0545-6':{s:'05:45',e:'11:45'},'0545-7':{s:'05:45',e:'12:45'},'0600':{s:'06:00',e:'14:00'},
+      '0600-10':{s:'06:00',e:'16:00'},'0600-10F':{s:'06:00',e:'16:00'},'0600-7':{s:'06:00',e:'13:00'},'0600-7F':{s:'06:00',e:'13:00'},
+      '0600-9':{s:'06:00',e:'15:00'},'0600F':{s:'06:00',e:'14:00'},'0630':{s:'06:30',e:'14:30'},'0630-10':{s:'06:30',e:'16:30'},
+      '0630-7':{s:'06:30',e:'13:30'},'0630-9':{s:'06:30',e:'15:30'},'0700':{s:'07:00',e:'15:00'},'0700-10':{s:'07:00',e:'17:00'},
+      '0700-10F':{s:'07:00',e:'17:00'},'0700-7':{s:'07:00',e:'14:00'},'0700-9':{s:'07:00',e:'16:00'},'0700ADMIN':{s:'07:00',e:'15:30'},
+      '0700F':{s:'07:00',e:'15:00'},'0730':{s:'07:30',e:'15:30'},'0730-7':{s:'07:30',e:'14:30'},'0800':{s:'08:00',e:'16:00'},
+      '0800-10':{s:'08:00',e:'18:00'},'0800-10F':{s:'08:00',e:'18:00'},'0800-7':{s:'08:00',e:'15:00'},'0800-9':{s:'08:00',e:'17:00'},
+      '0800F':{s:'08:00',e:'16:00'},'0830':{s:'08:30',e:'16:30'},'0830-10':{s:'08:30',e:'18:30'},'0900':{s:'09:00',e:'17:00'},
+      '0900-10':{s:'09:00',e:'19:00'},'0900-10F':{s:'09:00',e:'19:00'},'0900-7':{s:'09:00',e:'16:00'},'0900-9':{s:'09:00',e:'17:00'},
+      '0900F':{s:'09:00',e:'17:00'},'0930':{s:'09:30',e:'17:30'},'0930-10':{s:'09:30',e:'19:30'},'0930-7':{s:'09:30',e:'16:30'},
+      '1000':{s:'10:00',e:'18:00'},'1000-10':{s:'10:00',e:'20:00'},'1000-7':{s:'10:00',e:'17:00'},'1000-9':{s:'10:00',e:'19:00'},
+      '1100':{s:'11:00',e:'19:00'},'1100-10':{s:'11:00',e:'21:00'},'1100-10F':{s:'11:00',e:'21:00'},'1100-7':{s:'11:00',e:'18:00'},
+      '1100-9':{s:'11:00',e:'20:00'},'1100F':{s:'11:00',e:'19:00'},'1130':{s:'11:30',e:'19:30'},'1130-10':{s:'11:30',e:'21:30'},
+      '1200':{s:'12:00',e:'20:00'},'1200-10':{s:'12:00',e:'22:00'},'1200-10F':{s:'12:00',e:'22:00'},'1200-7':{s:'12:00',e:'19:00'},
+      '1200-9':{s:'12:00',e:'21:00'},'1200F':{s:'12:00',e:'20:00'},'1215-10':{s:'12:15',e:'22:15'},'1300':{s:'13:00',e:'21:00'},
+      '1300-10':{s:'13:00',e:'23:00'},'1300-10F':{s:'13:00',e:'23:00'},'1300-7':{s:'13:00',e:'20:00'},'1300-9':{s:'13:00',e:'22:00'},
+      '1300F':{s:'13:00',e:'21:00'},'1330':{s:'13:30',e:'21:30'},'1330-10':{s:'13:30',e:'23:30'},'1330-9':{s:'13:30',e:'22:30'},
+      '1400':{s:'14:00',e:'22:00'},'1400-10':{s:'14:00',e:'00:00'},'1400-10F':{s:'14:00',e:'00:00'},'1400-7':{s:'14:00',e:'21:00'},
+      '1400-9':{s:'14:00',e:'23:00'},'1400F':{s:'14:00',e:'22:00'},'1430':{s:'14:30',e:'22:30'},'1430-7':{s:'14:30',e:'21:30'},
+      '1430-9':{s:'14:30',e:'23:30'},'1500':{s:'15:00',e:'23:00'},'1500-7':{s:'15:00',e:'22:00'},'1500-9':{s:'15:00',e:'00:00'},
+      '1500F':{s:'15:00',e:'23:00'},'1530':{s:'15:30',e:'23:30'},'1600':{s:'16:00',e:'00:00'},'1600-7':{s:'16:00',e:'23:00'},
+      '1600-9':{s:'16:00',e:'01:00'},'1600F':{s:'16:00',e:'00:00'},'1615':{s:'16:15',e:'00:15'},'1615-7':{s:'16:15',e:'23:15'},
+      '1630':{s:'16:30',e:'00:30'},'1700':{s:'17:00',e:'01:00'},'1700-7':{s:'17:00',e:'00:00'},'1700-9':{s:'17:00',e:'02:00'},
+      '2030-10':{s:'20:30',e:'06:30'},'2100-10':{s:'21:00',e:'07:00'},'2100-10F':{s:'21:00',e:'07:00'},'2130':{s:'21:30',e:'05:30'},
+      '2130-9':{s:'21:30',e:'06:30'},'2200':{s:'22:00',e:'06:00'},'2200-10':{s:'22:00',e:'08:00'},'2200-9':{s:'22:00',e:'07:00'},
+      '2230':{s:'22:30',e:'06:30'},'2230-10':{s:'22:30',e:'08:30'},'2230-7':{s:'22:30',e:'05:30'},'2230-9':{s:'22:30',e:'07:30'},
+      '2230F':{s:'22:30',e:'06:30'},'2245':{s:'22:45',e:'06:45'},'2245-9':{s:'22:45',e:'07:45'},'2245F':{s:'22:45',e:'06:45'},
+      '2300':{s:'23:00',e:'07:00'},'2300-7':{s:'23:00',e:'06:00'},'2300-9':{s:'23:00',e:'08:00'},'2300F':{s:'23:00',e:'07:00'},
+      '2330-7':{s:'23:30',e:'06:30'},'2345':{s:'23:45',e:'07:45'},'2345F':{s:'23:45',e:'07:45'}
+    };
+
+    const WMT_OFF = /^(X|A|XTU|CTU|COS|SL|FSL|FSL-\d+|LV|OFF|VAC|HOL|HL|AL|ML|RL|DT|CT|PT|TR|TRN|TRNG|ADMIN|RDO|WO|AWOL|BL|CL|FL|FRLO|JURY|LWOP|MIL|TOA|WX)$/i;
+
+    const WMT_LEAVE_LABELS = {
+      X: 'Regular Day Off',
+      A: 'Annual Leave',
+      XTU: 'Credit Time Used',
+      CTU: 'Comp Time Used',
+      COS: 'Change of Station',
+      SL: 'Sick Leave',
+      FSL: 'Family Sick Leave',
+      LV: 'Leave',
+      OFF: 'Day Off',
+      VAC: 'Vacation',
+      HOL: 'Holiday',
+      HL: 'Holiday Leave',
+      AL: 'Annual Leave',
+      ML: 'Military Leave',
+      MIL: 'Military Leave',
+      RL: 'Reassignment Leave',
+      DT: 'Detail',
+      CT: 'Comp Time',
+      PT: 'Prime Time Leave',
+      TR: 'Training',
+      TRN: 'Training',
+      TRNG: 'Classroom Training',
+      ADMIN: 'Administrative Leave',
+      RDO: 'Regular Day Off',
+      WO: 'Week Off',
+      AWOL: 'Absent Without Leave',
+      BL: 'Blood Leave',
+      CL: 'Court Leave',
+      FL: 'Funeral Leave',
+      FRLO: 'Furlough',
+      JURY: 'Jury Duty',
+      LWOP: 'Leave Without Pay',
+      TOA: 'Time Off Award',
+      WX: 'Hazardous Weather Leave'
+    };
+
+    function classifyWMTCell(code) {
+      const raw = String(code || '').trim();
+      if (!raw) return { code: '', category: 'empty', typeLabel: '', isWork: false };
+
+      if (/^A\s*</i.test(raw)) {
+        return { code: raw, category: 'leave', typeLabel: 'Annual Leave', isWork: false };
+      }
+
+      const upper = raw.toUpperCase();
+      if (WMT_LEAVE_LABELS[upper]) {
+        return { code: raw, category: 'leave', typeLabel: WMT_LEAVE_LABELS[upper], isWork: false };
+      }
+      if (/^FSL-\d+$/i.test(upper)) {
+        return { code: raw, category: 'leave', typeLabel: 'Family Sick Leave', isWork: false };
+      }
+      if (isWMTOffCode(raw)) {
+        return { code: raw, category: 'off', typeLabel: upper, isWork: false };
+      }
+
+      const mods = parseWMTShiftModifiers(raw);
+      const typeLabel = describeWMTShiftModifiers(mods);
+      return {
+        code: raw,
+        category: 'work',
+        typeLabel,
+        isWork: true,
+        modifiers: mods
+      };
+    }
+
+    function formatShiftTypeCell(row) {
+      if (!row.isWork) {
+        return `<span class="type-badge type-leave">${escapeHtml(row.typeLabel || row.code)}</span>` +
+          (row.typeLabel ? `<span class="type-code">${escapeHtml(row.code)}</span>` : '');
+      }
+      if (row.typeLabel) {
+        return `<span class="type-badge type-special">${escapeHtml(row.typeLabel)}</span>` +
+          `<span class="type-code">${escapeHtml(row.code)}</span>`;
+      }
+      return `<span class="type-code">${escapeHtml(row.code || '—')}</span>`;
+    }
+
+    function isWMTOffCode(code) {
+      if (!code || !String(code).trim()) return true;
+      return WMT_OFF.test(String(code).trim());
+    }
+
+    function isWMTHTML(text) {
+      const t = String(text || '').trim();
+      if (t.length < 200) return false;
+      if (!t.includes('EditScheduleDetails_') && !t.includes('tblEditGrid')) return false;
+      return /<!DOCTYPE|<html[\s>]|<table[\s>]|<input[\s>]/i.test(t);
+    }
+
+    function extractWMTGridFromDocument(doc) {
+      const grid = doc.getElementById('tblEditGrid');
+      if (!grid) return null;
+
+      const rows = [];
+      let headerDone = false;
+
+      grid.querySelectorAll('tr').forEach(tr => {
+        if (tr.querySelector('input[type="submit"], input[id^="submit"]')) return;
+
+        const tds = tr.querySelectorAll('td');
+        if (!tds.length) return;
+
+        const label = (tds[0].innerText || tds[0].textContent || '').trim().replace(/\s+/g, ' ');
+
+        if (!headerDone && (
+          label.toUpperCase() === 'NAME' ||
+          /\d{1,2}\/\d{1,2}\/\d{4}/.test(label) ||
+          /\d{1,2}\/\d{1,2}\/\d{4}/.test((tds[1] && (tds[1].innerText || tds[1].textContent)) || '')
+        )) {
+          const hdr = ['NAME'];
+          for (let i = 1; i < tds.length; i++) {
+            hdr.push((tds[i].innerText || tds[i].textContent || '').trim().replace(/\s+/g, ' '));
+          }
+          if (hdr.length > 2) {
+            rows.push(hdr.join('\t'));
+            headerDone = true;
+          }
+          return;
+        }
+
+        if (!/^[A-Z]{2}\s*-\s*.+/i.test(label)) return;
+
+        const cells = [label];
+        tr.querySelectorAll('input[id^="EditScheduleDetails_"]').forEach(inp => {
+          const id = inp.id || '';
+          const name = inp.name || '';
+          if (/InitialEditScheduleDetails/i.test(id) || /InitialEditScheduleDetails/i.test(name)) return;
+          cells.push((inp.value || '').trim());
+        });
+
+        if (cells.length > 1) rows.push(cells.join('\t'));
+      });
+
+      return rows.length > 1 ? rows.join('\n') : null;
+    }
+
+    function parseWMTFromHTML(html) {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const tsv = extractWMTGridFromDocument(doc);
+      if (!tsv) {
+        throw new Error(
+          'Could not find WMT Edit Schedule grid (#tblEditGrid) with person rows in pasted HTML. ' +
+          'Save or copy source from Schedules → Edit Current (with the schedule table visible).'
+        );
+      }
+      const result = parseWMT(tsv);
+      result.interpretations.unshift({
+        lineNum: 0,
+        status: 'header',
+        raw: 'WMT Edit Schedule HTML',
+        note: 'Extracted shift values from EditScheduleDetails input fields in pasted page source.'
+      });
+      result.colMap = { ...result.colMap, format: 'wmt-html' };
+      return result;
+    }
+
+    function isWMTData(text) {
+      if (isWMTHTML(text)) return false;
+      const lines = cleanWMTLines(text);
+      let personRows = 0, dateHeaders = 0;
+      for (const line of lines) {
+        const cols = splitRow(line);
+        if ((cols[0] || '').toUpperCase() === 'NAME' && parseWMTDateHeader(cols[1])) dateHeaders++;
+        if (isWMTPersonRow(cols[0])) personRows++;
+      }
+      return (personRows >= 2 && dateHeaders >= 1) ||
+        (/\d+\s+of\s+\d+/.test(text) && /[A-Z]{2}\s*-\s*[A-Za-z]/.test(text));
+    }
+
+    function parseMilitaryTime(s) {
+      s = String(s).replace(/:/g, '').padStart(4, '0');
+      const h = +s.slice(0, 2), min = +s.slice(2);
+      if (h > 23 || min > 59) return null;
+      return { hours: h, minutes: min };
+    }
+
+    function parseWMTDateHeader(cell) {
+      if (!cell) return null;
+      const m = cell.replace(/\$\$\$\s*/g, '').trim()
+        .match(/(?:\w+\s+)?(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (!m) return null;
+      return new Date(+m[3], +m[1] - 1, +m[2]);
+    }
+
+    function parseClockTime(s) {
+      const [h, min] = String(s).split(':').map(Number);
+      if (Number.isNaN(h) || Number.isNaN(min)) return null;
+      return { hours: h, minutes: min };
+    }
+
+    function hoursFromLegendEntry(entry) {
+      const start = parseClockTime(entry.s);
+      const end = parseClockTime(entry.e);
+      if (!start || !end) return null;
+      let startMin = start.hours * 60 + start.minutes;
+      let endMin = end.hours * 60 + end.minutes;
+      if (endMin <= startMin) endMin += 24 * 60;
+      return (endMin - startMin) / 60;
+    }
+
+    /** Mid shifts (e.g. 2230, 2100): grid column is the duty day; clock start is the evening before. */
+    function isMidShiftOnColumn(shiftInfo) {
+      if (!shiftInfo?.start || !shiftInfo.hours) return false;
+      if (shiftInfo.start.hours < 20) return false;
+      const startMin = shiftInfo.start.hours * 60 + shiftInfo.start.minutes;
+      return startMin + shiftInfo.hours * 60 > 24 * 60;
+    }
+
+    function shiftStartDate(gridDate, shiftInfo) {
+      if (!isMidShiftOnColumn(shiftInfo)) return gridDate;
+      const d = new Date(gridDate);
+      d.setDate(d.getDate() - 1);
+      return d;
+    }
+
+    function formatWorkStartDisplay(start, columnDate, isMidShift) {
+      const time = formatTime(start);
+      if (!isMidShift || dateKey(start) === dateKey(columnDate)) return time;
+      const day = start.toLocaleDateString('en-US', { weekday: 'short' });
+      return `${time} (${day})`;
+    }
+
+    function stripWMTModifiers(code) {
+      return String(code).trim()
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/[$^!]+$/g, '')
+        .replace(/F$/i, '');
+    }
+
+    function parseWMTShiftModifiers(raw) {
+      const s = String(raw || '').trim();
+      return {
+        cic: /^C\d/i.test(s) || /^C</i.test(s),
+        detail: /^@?D/i.test(s),
+        training: /^T\d/i.test(s),
+        admin: /^@/i.test(s) || /^@D/i.test(s) || /ADMIN$/i.test(s),
+        overtime: /\$/.test(s),
+        credit: /\^/.test(s),
+        comp: /!/.test(s)
+      };
+    }
+
+    function describeWMTShiftModifiers(mods) {
+      const parts = [];
+      if (mods.cic) parts.push('CIC');
+      if (mods.detail) parts.push('Detail');
+      if (mods.training) parts.push('Training');
+      if (mods.admin) parts.push('Admin');
+      if (mods.overtime) parts.push('overtime');
+      if (mods.credit) parts.push('credit time');
+      if (mods.comp) parts.push('comp time');
+      return parts.length ? parts.join(' + ') : '';
+    }
+
+    function unwrapWMTBaseShift(code) {
+      let c = stripWMTModifiers(code);
+      if (!c) return c;
+
+      let m = c.match(/^[A-Z@]<(.+)>$/i);
+      if (m) return unwrapWMTBaseShift(m[1]);
+
+      m = c.match(/^@?D<(.+)>$/i);
+      if (m) return unwrapWMTBaseShift(m[1]);
+
+      m = c.match(/^@?D(\d{3,4}(?:-\d+)?(?:ADMIN)?)$/i);
+      if (m) return m[1];
+
+      m = c.match(/^T(\d{3,4}(?:-\d+)?(?:ADMIN)?)$/i);
+      if (m) return m[1];
+
+      m = c.match(/^C(\d{3,4}(?:-\d+)?)$/i);
+      if (m) return m[1];
+
+      m = c.match(/^@(\d{3,4}(?:-\d+)?)$/i);
+      if (m) return m[1];
+
+      return c;
+    }
+
+    function wmtLegendCandidates(code) {
+      const candidates = [];
+      const add = (s) => {
+        const v = String(s || '').trim();
+        if (v && !candidates.includes(v)) candidates.push(v);
+      };
+
+      const c = String(code).trim().replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      add(c);
+      add(stripWMTModifiers(c));
+      add(unwrapWMTBaseShift(c));
+
+      return candidates;
+    }
+
+    function lookupZOBShift(code) {
+      for (const cand of wmtLegendCandidates(code)) {
+        const key = stripWMTModifiers(cand);
+        if (ZOB_SHIFT_LEGEND[key]) return { key, entry: ZOB_SHIFT_LEGEND[key] };
+      }
+      return null;
+    }
+
+    function normalizeWMTShiftCode(code) {
+      if (!code || isWMTOffCode(code)) return null;
+      const c = String(code).trim().replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+      if (/^\d+\s+of\s+\d+/i.test(c)) return null;
+
+      const legend = lookupZOBShift(c);
+      if (legend) return legend.key;
+
+      return unwrapWMTBaseShift(c) || null;
+    }
+
+    function parseWMTShiftCode(code) {
+      const raw = code ? String(code).trim() : '';
+      if (!raw || isWMTOffCode(raw)) return null;
+
+      const modifiers = parseWMTShiftModifiers(raw);
+      const legend = lookupZOBShift(raw);
+      if (legend) {
+        const start = parseClockTime(legend.entry.s);
+        const hours = hoursFromLegendEntry(legend.entry);
+        if (start && hours) {
+          return {
+            start,
+            hours,
+            code: raw.toUpperCase(),
+            baseCode: legend.key,
+            modifiers,
+            role: describeWMTShiftModifiers(modifiers)
+          };
+        }
+      }
+
+      const normalized = normalizeWMTShiftCode(raw);
+      if (!normalized) return null;
+
+      let m = normalized.match(/^(\d{3,4})-(\d{1,2})$/);
+      if (m) {
+        const start = parseMilitaryTime(m[1]);
+        if (!start) return null;
+        return {
+          start,
+          hours: +m[2],
+          code: raw.toUpperCase(),
+          baseCode: normalized,
+          modifiers,
+          role: describeWMTShiftModifiers(modifiers)
+        };
+      }
+
+      m = normalized.match(/^(\d{3,4})(?:ADMIN)?$/i);
+      if (m) {
+        const start = parseMilitaryTime(m[1]);
+        if (!start) return null;
+        return {
+          start,
+          hours: 8,
+          code: raw.toUpperCase(),
+          baseCode: normalized,
+          modifiers,
+          role: describeWMTShiftModifiers(modifiers)
+        };
+      }
+      return null;
+    }
+
+    function isWMTPersonRow(label) {
+      return /^[A-Z]{2}\s*-\s*.+/i.test(label);
+    }
+
+    function cleanWMTLines(text) {
+      return text.split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(l => l.includes('\t') && l.length < 2000);
+    }
+
+    function parseWMT(text) {
+      const lines = cleanWMTLines(text);
+      const shifts = [];
+      const schedule = [];
+      const errors = [];
+      const interpretations = [];
+      let dates = [];
+      let dateLabels = [];
+      const personOrder = [];
+      let personRows = 0;
+      let staffingRows = 0;
+      let assignmentsFound = 0;
+      const filter = (document.getElementById('personFilter').value || '').trim().toLowerCase();
+
+      interpretations.push({
+        lineNum: 0,
+        status: 'header',
+        raw: 'WMT Scheduler format detected',
+        note: 'Matrix layout: person rows × date columns. ZOB legend times; prefixes C/T/D/@ = role; $/^/! = OT/credit/comp.'
+      });
+
+      for (let i = 0; i < lines.length; i++) {
+        const cols = splitRow(lines[i]);
+        if (!cols.length) continue;
+        const label = cols[0];
+
+        // Date header row
+        if (label.toUpperCase() === 'NAME' || /\d{1,2}\/\d{1,2}\/\d{4}/.test(cols[1] || '')) {
+          const parsedDates = cols.slice(1).map(parseWMTDateHeader).filter(Boolean);
+          if (parsedDates.length >= 3) {
+            dates = parsedDates;
+            dateLabels = cols.slice(1, 1 + parsedDates.length)
+              .map(c => c.replace(/\$\$\$\s*/g, '').trim());
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'header',
+              raw: label + ' | ' + cols.slice(1, 4).join(' | ') + ' …',
+              note: `Date header — ${dates.length} days from ${formatDate(dates[0])} to ${formatDate(dates[dates.length - 1])}`
+            });
+            continue;
+          }
+        }
+
+        // Person assignment row
+        if (isWMTPersonRow(label)) {
+          personRows++;
+          if (filter && !label.toLowerCase().includes(filter)) continue;
+
+          const personName = label.trim();
+          if (!personOrder.includes(personName)) personOrder.push(personName);
+
+          if (!dates.length) {
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'skip',
+              raw: label,
+              note: 'Person row found but no date headers detected yet'
+            });
+            continue;
+          }
+
+          let personShifts = 0;
+          for (let d = 0; d < dates.length && d + 1 < cols.length; d++) {
+            const cell = cols[d + 1];
+            if (!cell) continue;
+
+            const cellInfo = classifyWMTCell(cell);
+            schedule.push({
+              name: label.trim(),
+              date: dates[d],
+              code: cell,
+              typeLabel: cellInfo.typeLabel,
+              category: cellInfo.category,
+              isWork: cellInfo.isWork
+            });
+
+            if (!cellInfo.isWork) {
+              interpretations.push({
+                lineNum: i + 1,
+                status: 'skip',
+                raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+                note: cellInfo.typeLabel || 'Non-work day'
+              });
+              continue;
+            }
+
+            const shiftInfo = parseWMTShiftCode(cell);
+            if (!shiftInfo) {
+              if (!/^\d+\s+of\s+/i.test(cell)) {
+                interpretations.push({
+                  lineNum: i + 1,
+                  status: 'error',
+                  raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+                  note: `Unknown shift code "${cell}" — cannot infer times`
+                });
+              }
+              continue;
+            }
+
+            const gridDate = dates[d];
+            const isMidShift = isMidShiftOnColumn(shiftInfo);
+            const start = combineDateTime(shiftStartDate(gridDate, shiftInfo), shiftInfo.start);
+            let end = new Date(start.getTime() + shiftInfo.hours * 3600000);
+            const overnight = end.getDate() !== start.getDate();
+            shifts.push({
+              name: label.trim(),
+              start,
+              end,
+              columnDate: gridDate,
+              isMidShift,
+              lineNum: i + 1,
+              code: cell,
+              typeLabel: cellInfo.typeLabel,
+              category: cellInfo.category
+            });
+            personShifts++;
+            assignmentsFound++;
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'ok',
+              raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+              parsed: {
+                name: label.trim(),
+                date: formatDate(start),
+                start: formatTime(start),
+                end: formatTime(end),
+                overnight
+              },
+              note: (isMidShift ? 'Mid shift — starts previous calendar day. ' : '') +
+                (shiftInfo.role
+                  ? `${shiftInfo.code} (${shiftInfo.role}) → ${shiftInfo.baseCode}, ${shiftInfo.hours}h`
+                  : `${shiftInfo.code} → ${shiftInfo.hours}h shift`)
+            });
+          }
+
+          if (!personShifts) {
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'skip',
+              raw: label,
+              note: 'Person listed but all day cells are empty — no shift codes captured'
+            });
+          }
+          continue;
+        }
+
+        // Staffing summary row (shift code in col 0, or X of Y, or band totals)
+        if (/^\d+\s+of\s+\d+/.test(cols[1] || '') || /^(Mid|Day|Swing|Mid-Day)$/i.test(label) ||
+            (/^\d{3,4}(-\d+)?[A-Z]*$/i.test(label) && !isWMTPersonRow(label))) {
+          staffingRows++;
+          if (staffingRows <= 5) {
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'skip',
+              raw: cols.slice(0, 4).join(' | ') + (cols.length > 4 ? ' …' : ''),
+              note: 'Staffing count row (area totals) — not a person assignment'
+            });
+          }
+          continue;
+        }
+      }
+
+      interpretations.unshift({
+        lineNum: 0,
+        status: 'header',
+        raw: 'Summary',
+        note: `${personRows} person row(s), ${staffingRows} staffing row(s), ${assignmentsFound} shift assignment(s) parsed`
+      });
+
+      if (!shifts.length) {
+        errors.push(
+          assignmentsFound === 0 && personRows > 0
+            ? 'WMT person rows found but day cells are empty. Paste the full Edit Current Schedule page HTML, or use the bookmarklet so input values are captured.'
+            : 'No WMT shift assignments could be parsed from this paste.'
+        );
+      }
+
+      return {
+        shifts,
+        schedule,
+        dates,
+        dateLabels,
+        personOrder,
+        errors,
+        colMap: { format: 'wmt', dates: dates.length, persons: personRows },
+        interpretations
+      };
+    }
+
+    function parseInput(text) {
+      if (isWMTHTML(text)) return parseWMTFromHTML(text);
+      if (isWMTData(text)) return parseWMT(text);
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (!lines.length) throw new Error('No data found. Paste schedule rows or use the bookmarklet.');
+
+      let colMap = null;
+      const shifts = [];
+      const errors = [];
+      const interpretations = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const cols = splitRow(lines[i]);
+        if (!cols.length) continue;
+
+        if (!colMap) {
+          if (isHeaderRow(cols)) {
+            colMap = detectColumns(cols);
+            interpretations.push({
+              lineNum: i + 1,
+              status: 'header',
+              raw: lines[i],
+              cols,
+              note: `Header row — mapped columns from: ${cols.join(' | ')}`
+            });
+            continue;
+          }
+          colMap = detectColumns(cols) || { nameIdx: 0, dateIdx: 1, startIdx: 2, endIdx: 3 };
+        }
+
+        const name = cols[colMap.nameIdx];
+        const dateStr = cols[colMap.dateIdx];
+        const startStr = cols[colMap.startIdx];
+        const endStr = cols[colMap.endIdx];
+
+        const base = {
+          lineNum: i + 1,
+          raw: lines[i],
+          cols,
+          extracted: { name, dateStr, startStr, endStr }
+        };
+
+        if (!name || !dateStr || !startStr || !endStr) {
+          const msg = `Missing fields (need name, date, start, end)`;
+          errors.push(`Line ${i + 1}: ${msg} — ${lines[i]}`);
+          interpretations.push({ ...base, status: 'error', note: msg });
+          continue;
+        }
+
+        const date = parseDate(dateStr);
+        const startTime = parseTime(startStr);
+        const endTime = parseTime(endStr);
+
+        if (!date) {
+          const msg = `Could not parse date "${dateStr}"`;
+          errors.push(`Line ${i + 1}: ${msg}`);
+          interpretations.push({ ...base, status: 'error', note: msg });
+          continue;
+        }
+        if (!startTime) {
+          const msg = `Could not parse start time "${startStr}"`;
+          errors.push(`Line ${i + 1}: ${msg}`);
+          interpretations.push({ ...base, status: 'error', note: msg });
+          continue;
+        }
+        if (!endTime) {
+          const msg = `Could not parse end time "${endStr}"`;
+          errors.push(`Line ${i + 1}: ${msg}`);
+          interpretations.push({ ...base, status: 'error', note: msg });
+          continue;
+        }
+
+        let start = combineDateTime(date, startTime);
+        let end = combineDateTime(date, endTime);
+        const overnight = end <= start;
+        if (overnight) end = new Date(end.getTime() + 86400000);
+
+        shifts.push({ name: name.trim(), start, end, lineNum: i + 1 });
+        interpretations.push({
+          ...base,
+          status: 'ok',
+          parsed: {
+            name: name.trim(),
+            date: formatDate(start),
+            start: formatTime(start),
+            end: formatTime(end),
+            overnight
+          },
+          note: overnight ? 'Overnight shift (end rolled to next day)' : 'Parsed successfully'
+        });
+      }
+
+      if (!shifts.length) throw new Error('No valid shifts parsed.' + (errors.length ? '\n' + errors.slice(0, 5).join('\n') : ''));
+
+      return { shifts, errors, colMap, interpretations, format: 'simple' };
+    }
+
+    // ── Analysis ──
+    function analyzeShifts(shifts, schedule, minRestMs, maxConsecutive) {
+      const byPerson = {};
+      const scheduleByPerson = {};
+
+      for (const s of shifts) {
+        if (!byPerson[s.name]) byPerson[s.name] = [];
+        byPerson[s.name].push(s);
+      }
+
+      for (const entry of schedule || []) {
+        if (!scheduleByPerson[entry.name]) scheduleByPerson[entry.name] = [];
+        scheduleByPerson[entry.name].push(entry);
+      }
+
+      const allNames = new Set([...Object.keys(byPerson), ...Object.keys(scheduleByPerson)]);
+      const results = [];
+
+      for (const name of allNames) {
+        const personShifts = (byPerson[name] || []).slice().sort((a, b) => a.start - b.start);
+
+        const workRows = [];
+        let shortRestCount = 0;
+        let overlapCount = 0;
+
+        for (let i = 0; i < personShifts.length; i++) {
+          const cur = personShifts[i];
+          let restMs = null;
+          let restStatus = 'ok';
+          let restLabel = '—';
+
+          if (i > 0) {
+            const prev = personShifts[i - 1];
+            restMs = cur.start - prev.end;
+            if (restMs < 0) {
+              restStatus = 'danger';
+              restLabel = 'overlap';
+              overlapCount++;
+            } else {
+              restLabel = formatDuration(restMs);
+              if (restMs < minRestMs) {
+                restStatus = 'danger';
+                shortRestCount++;
+              } else if (restMs < minRestMs * 1.25) {
+                restStatus = 'warn';
+              }
+            }
+          }
+
+          workRows.push({
+            date: formatDate(cur.columnDate || cur.start),
+            dateKey: dateKey(cur.columnDate || cur.start),
+            start: formatWorkStartDisplay(cur.start, cur.columnDate || cur.start, cur.isMidShift),
+            end: formatTime(cur.end),
+            restMs,
+            restLabel,
+            restStatus,
+            dateObj: cur.start,
+            columnDate: cur.columnDate,
+            isMidShift: cur.isMidShift,
+            code: cur.code || '',
+            typeLabel: cur.typeLabel || '',
+            category: cur.category || 'work',
+            isWork: true
+          });
+        }
+
+        const workByDate = new Map(workRows.map(r => [r.dateKey, r]));
+        const personSchedule = (scheduleByPerson[name] || []).slice()
+          .sort((a, b) => a.date - b.date);
+
+        const rows = personSchedule.length
+          ? personSchedule.map(entry => {
+              const dk = dateKey(entry.date);
+              if (!entry.isWork) {
+                return {
+                  date: formatDate(entry.date),
+                  dateKey: dk,
+                  code: entry.code,
+                  typeLabel: entry.typeLabel,
+                  category: entry.category,
+                  isWork: false,
+                  start: '—',
+                  end: '—',
+                  restLabel: '—',
+                  restStatus: 'neutral'
+                };
+              }
+              const work = workByDate.get(dk);
+              if (work) return { ...work, code: entry.code, typeLabel: entry.typeLabel };
+              return {
+                date: formatDate(entry.date),
+                dateKey: dk,
+                code: entry.code,
+                typeLabel: entry.typeLabel,
+                category: entry.category,
+                isWork: true,
+                start: '?',
+                end: '?',
+                restLabel: '—',
+                restStatus: 'neutral'
+              };
+            })
+          : workRows;
+
+        // Consecutive day streaks (work shifts only — use schedule column / duty day)
+        const uniqueDays = [...new Set(personShifts.map(s => dateKey(s.columnDate || s.start)))].sort();
+        const streaks = [];
+        let streakStart = uniqueDays[0], streakLen = 1;
+
+        for (let i = 1; i < uniqueDays.length; i++) {
+          const prev = new Date(uniqueDays[i - 1] + 'T12:00:00');
+          const cur = new Date(uniqueDays[i] + 'T12:00:00');
+          const diffDays = Math.round((cur - prev) / 86400000);
+
+          if (diffDays === 1) {
+            streakLen++;
+          } else {
+            if (streakLen > maxConsecutive) {
+              streaks.push({ start: streakStart, end: uniqueDays[i - 1], days: streakLen });
+            }
+            streakStart = uniqueDays[i];
+            streakLen = 1;
+          }
+        }
+        if (streakLen > maxConsecutive) {
+          streaks.push({ start: streakStart, end: uniqueDays[uniqueDays.length - 1], days: streakLen });
+        }
+
+        const maxStreak = uniqueDays.length ? computeMaxStreak(uniqueDays) : 0;
+
+        results.push({
+          name,
+          rows,
+          shiftCount: personShifts.length,
+          scheduledDays: personSchedule.length || personShifts.length,
+          shortRestCount,
+          overlapCount,
+          streaks,
+          maxStreak,
+          hasViolations: shortRestCount > 0 || overlapCount > 0 || streaks.length > 0
+        });
+      }
+
+      results.sort((a, b) => a.name.localeCompare(b.name));
+      return results;
+    }
+
+    function computeMaxStreak(sortedDayKeys) {
+      if (!sortedDayKeys.length) return 0;
+      let max = 1, cur = 1;
+      for (let i = 1; i < sortedDayKeys.length; i++) {
+        const prev = new Date(sortedDayKeys[i - 1] + 'T12:00:00');
+        const d = new Date(sortedDayKeys[i] + 'T12:00:00');
+        if (Math.round((d - prev) / 86400000) === 1) {
+          cur++;
+          max = Math.max(max, cur);
+        } else {
+          cur = 1;
+        }
+      }
+      return max;
+    }
+
+    // ── Rendering ──
+    function formatGridDateHeader(date) {
+      const wd = date.toLocaleDateString('en-US', { weekday: 'narrow' });
+      const md = `${date.getMonth() + 1}/${date.getDate()}`;
+      return { wd, md };
+    }
+
+    function renderScheduleGrid(results, schedule, dates, dateLabels, personOrder) {
+      const violationMap = new Map();
+      for (const person of results) {
+        for (const row of person.rows) {
+          if (row.isWork !== false && row.restStatus === 'danger') {
+            violationMap.set(`${person.name}|${row.dateKey}`, row.restLabel);
+          }
+        }
+      }
+
+      const cellMap = new Map();
+      for (const entry of schedule || []) {
+        cellMap.set(`${entry.name}|${dateKey(entry.date)}`, entry);
+      }
+
+      const names = personOrder?.length
+        ? personOrder
+        : [...new Set((schedule || []).map(s => s.name))].sort();
+      const dateKeys = dates.map(d => dateKey(d));
+
+      let html = `<div class="schedule-grid-wrap"><table class="schedule-grid" style="--day-cols:${dates.length}"><thead><tr>`;
+      html += '<th class="name-col">Name</th>';
+      for (let i = 0; i < dates.length; i++) {
+        const { wd, md } = formatGridDateHeader(dates[i]);
+        html += `<th class="day-col"><span class="day-wd">${escapeHtml(wd)}</span><span class="day-md">${escapeHtml(md)}</span></th>`;
+      }
+      html += '</tr></thead><tbody>';
+
+      for (const name of names) {
+        html += `<tr><th class="name-col" title="${escapeHtml(name)}">${escapeHtml(name)}</th>`;
+        for (let i = 0; i < dates.length; i++) {
+          const dk = dateKeys[i];
+          const key = `${name}|${dk}`;
+          const entry = cellMap.get(key);
+          const code = entry?.code || '';
+          const isViol = violationMap.has(key);
+          const cls = [
+            'day-col',
+            isViol ? 'cell-violation' : '',
+            entry && !entry.isWork && code ? 'cell-leave' : '',
+            entry?.isWork && entry.typeLabel ? 'cell-special' : ''
+          ].filter(Boolean).join(' ');
+          let title = code;
+          if (isViol) title = `${code} — insufficient rest: ${violationMap.get(key)}`;
+          else if (entry?.typeLabel) title = `${code} — ${entry.typeLabel}`;
+          html += `<td class="${cls}" title="${escapeHtml(title)}">${escapeHtml(code)}</td>`;
+        }
+        html += '</tr>';
+      }
+
+      html += '</tbody></table></div>';
+      return html;
+    }
+
+    function renderResults(results, parseErrors, gridMeta) {
+      const minRestH = +document.getElementById('minRestHours').value || 10;
+      const maxDays = +document.getElementById('maxConsecutiveDays').value || 6;
+
+      document.getElementById('summarySection').style.display = 'block';
+      document.getElementById('resultsSection').style.display = 'block';
+
+      const totalShifts = results.reduce((s, r) => s + r.shiftCount, 0);
+      const peopleWithShortRest = results.filter(r => r.shortRestCount > 0).length;
+      const peopleWithStreaks = results.filter(r => r.streaks.length > 0).length;
+      const peopleWithOverlap = results.filter(r => r.overlapCount > 0).length;
+
+      document.getElementById('summary').innerHTML = `
+        <div class="stat ok"><div class="value">${results.length}</div><div class="label">People</div></div>
+        <div class="stat ok"><div class="value">${totalShifts}</div><div class="label">Work Shifts</div></div>
+        <div class="stat ${peopleWithShortRest || peopleWithOverlap ? 'danger' : 'ok'}"><div class="value">${peopleWithShortRest + peopleWithOverlap}</div><div class="label">Rest Violations</div></div>
+        <div class="stat ${peopleWithStreaks ? 'danger' : 'ok'}"><div class="value">${peopleWithStreaks}</div><div class="label">${maxDays + 1}+ Day Streaks</div></div>
+      `;
+
+      const errEl = document.getElementById('parseError');
+      if (parseErrors.length) {
+        errEl.style.display = 'block';
+        errEl.textContent = `Parsed with ${parseErrors.length} warning(s): ${parseErrors.slice(0, 3).join('; ')}${parseErrors.length > 3 ? '…' : ''}`;
+      } else {
+        errEl.style.display = 'none';
+      }
+
+      const container = document.getElementById('results');
+      if (!results.length) {
+        container.innerHTML = '<div class="empty-state">No results to display.</div>';
+        return;
+      }
+
+      const { schedule, dates, dateLabels, personOrder } = gridMeta || {};
+      if (dates?.length && schedule?.length) {
+        container.innerHTML = renderScheduleGrid(results, schedule, dates, dateLabels, personOrder);
+        return;
+      }
+
+      container.innerHTML = '<div class="empty-state">Grid view requires WMT schedule data.</div>';
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    let analyzeTimer = null;
+    function scheduleAnalysis() {
+      clearTimeout(analyzeTimer);
+      analyzeTimer = setTimeout(() => {
+        if (document.getElementById('inputData').value.trim()) runAnalysis();
+      }, 300);
+    }
+
+    function runAnalysis() {
+      const text = document.getElementById('inputData').value;
+      const minRestMs = (+document.getElementById('minRestHours').value || 10) * 3600000;
+      const maxConsecutive = +document.getElementById('maxConsecutiveDays').value || 6;
+
+      try {
+        const parsed = parseInput(text);
+        const { shifts, schedule, dates, dateLabels, personOrder, errors } = parsed;
+
+        if (!shifts.length && !(schedule && schedule.length)) {
+          document.getElementById('parseError').style.display = 'block';
+          document.getElementById('parseError').textContent = errors.join(' ') || 'No shifts found in pasted data.';
+          document.getElementById('summarySection').style.display = 'none';
+          document.getElementById('resultsSection').style.display = 'none';
+          return;
+        }
+
+        document.getElementById('parseError').style.display = 'none';
+        const results = analyzeShifts(shifts, schedule || [], minRestMs, maxConsecutive);
+        renderResults(results, errors, { schedule, dates, dateLabels, personOrder });
+      } catch (e) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = e.message;
+        document.getElementById('summarySection').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'none';
+      }
+    }
+
+    async function readClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text.trim()) {
+          document.getElementById('inputData').value = text;
+          runAnalysis();
+        } else {
+          document.getElementById('parseError').style.display = 'block';
+          document.getElementById('parseError').textContent = 'Clipboard is empty.';
+        }
+      } catch {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent =
+          'Could not read clipboard. Click in the page first, or paste manually (Ctrl+V).';
+      }
+    }
+
+    // ── Event listeners ──
+    document.getElementById('btnClipboard').addEventListener('click', readClipboard);
+    document.getElementById('btnClear').addEventListener('click', () => {
+      document.getElementById('inputData').value = '';
+      document.getElementById('parseError').style.display = 'none';
+      document.getElementById('summarySection').style.display = 'none';
+      document.getElementById('resultsSection').style.display = 'none';
+    });
+
+    document.getElementById('inputData').addEventListener('input', scheduleAnalysis);
+    document.getElementById('inputData').addEventListener('paste', () => setTimeout(scheduleAnalysis, 0));
+
+    document.getElementById('results').addEventListener('click', (e) => {
+      const row = e.target.closest('.schedule-grid tbody tr');
+      if (!row) return;
+      if (row.classList.contains('row-active')) {
+        row.classList.remove('row-active');
+        return;
+      }
+      document.querySelectorAll('.schedule-grid tbody tr.row-active')
+        .forEach(r => r.classList.remove('row-active'));
+      row.classList.add('row-active');
+    });
+
+    document.getElementById('minRestHours').addEventListener('change', scheduleAnalysis);
+    document.getElementById('maxConsecutiveDays').addEventListener('change', scheduleAnalysis);
+    document.getElementById('personFilter').addEventListener('change', scheduleAnalysis);
+
+    // Auto-read clipboard on load (best effort)
+    window.addEventListener('load', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text.trim() && (text.includes('\t') || text.includes(',')) && /\d/.test(text)) {
+          document.getElementById('inputData').value = text;
+        }
+      } catch { /* clipboard access denied until user interaction */ }
+    });
+  </script>
+</body>
+</html>
