@@ -98,24 +98,6 @@
 
     button.secondary:hover { background: var(--border); }
 
-    textarea {
-      width: 100%;
-      min-height: 140px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-family: "Cascadia Code", "Consolas", monospace;
-      font-size: 0.8rem;
-      padding: 0.75rem;
-      resize: vertical;
-    }
-
-    textarea:focus {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
-    }
-
     .settings {
       display: flex;
       flex-wrap: wrap;
@@ -420,17 +402,16 @@
 <body>
   <header>
     <h1>Shift Schedule Analyzer</h1>
-    <p>Paste or import schedule data to check rest between shifts and consecutive-day streaks.</p>
+    <p>Import schedule data from the clipboard to check rest between shifts and consecutive-day streaks.</p>
   </header>
 
   <main>
     <section>
       <h2>Input Data</h2>
       <p class="help-text">
-        Supports <strong>WMT Scheduler</strong> (ZOB) worksheet grids and simple <strong>Name · Date · Start · End</strong> rows.
-        Shift times use the official <strong>ZOB Shift Legend</strong> (127 codes).
+        Use the bookmarklet on WMT <strong>Schedules → Edit Non Published</strong>, then click <strong>Parse from Clipboard</strong>
+        (or press Ctrl+V on this page). Shift times use the official <strong>ZOB Shift Legend</strong> (127 codes).
         <strong>Mid shifts</strong> (e.g. 2230, 2100) start the <em>evening before</em> their schedule column date.
-        For WMT: paste the full <em>Edit Non Published</em> schedule page (View Source or Save As), use the bookmarklet, or paste TSV from the clipboard.
       </p>
       <div class="settings" style="margin-bottom:0.75rem">
         <label>
@@ -438,10 +419,8 @@
           <input type="text" id="personFilter" placeholder="e.g. Initials or Last Name" style="width:14rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0.25rem 0.4rem">
         </label>
       </div>
-      <textarea id="inputData" placeholder="Paste WMT page HTML, TSV from bookmarklet, or Name/Date/Start/End rows..."></textarea>
       <div class="controls">
-        <button id="btnClipboard" class="secondary">Parse from Clipboard</button>
-        <button id="btnClear" class="secondary">Clear</button>
+        <button id="btnClipboard">Parse from Clipboard</button>
       </div>
       <div class="settings">
         <label>
@@ -466,7 +445,7 @@
         <ol>
           <li>Drag the button above to your bookmarks bar.</li>
           <li>Open WMT <strong>Schedules → Edit Non Published</strong>, pick your area (e.g. AREA 8), and click the bookmark.</li>
-          <li>Come back here and click "Parse from Clipboard", or paste into the box — analysis runs automatically.</li>
+          <li>Come back here and click <strong>Parse from Clipboard</strong> (or press Ctrl+V).</li>
         </ol>
       </div>
     </section>
@@ -1687,16 +1666,18 @@
       return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    let scheduleData = '';
     let analyzeTimer = null;
+
     function scheduleAnalysis() {
       clearTimeout(analyzeTimer);
       analyzeTimer = setTimeout(() => {
-        if (document.getElementById('inputData').value.trim()) runAnalysis();
+        if (scheduleData.trim()) runAnalysis();
       }, 300);
     }
 
     function runAnalysis() {
-      const text = document.getElementById('inputData').value;
+      const text = scheduleData;
       const minRestMs = (+document.getElementById('minRestHours').value || 10) * 3600000;
       const maxConsecutive = +document.getElementById('maxConsecutiveDays').value || 6;
 
@@ -1723,34 +1704,37 @@
       }
     }
 
+    async function loadScheduleData(text) {
+      if (!text.trim()) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = 'Clipboard is empty.';
+        return;
+      }
+      scheduleData = text;
+      runAnalysis();
+    }
+
     async function readClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        if (text.trim()) {
-          document.getElementById('inputData').value = text;
-          runAnalysis();
-        } else {
-          document.getElementById('parseError').style.display = 'block';
-          document.getElementById('parseError').textContent = 'Clipboard is empty.';
-        }
+        await loadScheduleData(text);
       } catch {
         document.getElementById('parseError').style.display = 'block';
         document.getElementById('parseError').textContent =
-          'Could not read clipboard. Click in the page first, or paste manually (Ctrl+V).';
+          'Could not read clipboard. Click in the page first, then try again or press Ctrl+V.';
       }
     }
 
     // ── Event listeners ──
     document.getElementById('btnClipboard').addEventListener('click', readClipboard);
-    document.getElementById('btnClear').addEventListener('click', () => {
-      document.getElementById('inputData').value = '';
-      document.getElementById('parseError').style.display = 'none';
-      document.getElementById('summarySection').style.display = 'none';
-      document.getElementById('resultsSection').style.display = 'none';
-    });
 
-    document.getElementById('inputData').addEventListener('input', scheduleAnalysis);
-    document.getElementById('inputData').addEventListener('paste', () => setTimeout(scheduleAnalysis, 0));
+    document.addEventListener('paste', (e) => {
+      const text = e.clipboardData?.getData('text');
+      if (text?.trim()) {
+        e.preventDefault();
+        loadScheduleData(text);
+      }
+    });
 
     document.getElementById('results').addEventListener('click', (e) => {
       const row = e.target.closest('.schedule-grid tbody tr');
@@ -1767,16 +1751,6 @@
     document.getElementById('minRestHours').addEventListener('change', scheduleAnalysis);
     document.getElementById('maxConsecutiveDays').addEventListener('change', scheduleAnalysis);
     document.getElementById('personFilter').addEventListener('change', scheduleAnalysis);
-
-    // Auto-read clipboard on load (best effort)
-    window.addEventListener('load', async () => {
-      try {
-        const text = await navigator.clipboard.readText();
-        if (text.trim() && (text.includes('\t') || text.includes(',')) && /\d/.test(text)) {
-          document.getElementById('inputData').value = text;
-        }
-      } catch { /* clipboard access denied until user interaction */ }
-    });
   </script>
 </body>
 </html>
