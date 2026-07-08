@@ -288,7 +288,7 @@
     }
 
     .schedule-grid-wrap {
-      overflow-x: hidden;
+      overflow-x: auto;
       overflow-y: auto;
       max-height: 75vh;
       border: 1px solid var(--border);
@@ -365,7 +365,61 @@
 
     .schedule-grid tbody tr { cursor: pointer; }
 
+    .schedule-grid th.date-header {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .schedule-grid th.date-header:hover {
+      color: var(--text);
+    }
+
+    .schedule-grid th.col-selected,
+    .schedule-grid td.col-selected {
+      border-left: 2px solid var(--text);
+      border-right: 2px solid var(--text);
+    }
+
+    .schedule-grid thead th.col-selected {
+      border-top: 2px solid var(--text);
+    }
+
+    .schedule-grid tbody tr:last-child td.col-selected {
+      border-bottom: 2px solid var(--text);
+    }
+
+    .schedule-grid th.col-roster,
+    .schedule-grid td.col-roster {
+      text-align: left;
+      font-size: clamp(0.5rem, 0.4vw + 0.38rem, 0.65rem);
+      padding-left: 0.35rem;
+      padding-right: 0.25rem;
+      background: var(--surface2);
+      border-left: 2px solid var(--text);
+      border-right: 2px solid var(--text);
+      white-space: nowrap;
+      width: 5.5rem;
+      min-width: 5.5rem;
+      max-width: 6rem;
+    }
+
+    .schedule-grid th.col-roster {
+      font-weight: 600;
+      color: var(--muted);
+      vertical-align: bottom;
+    }
+
+    .schedule-grid td.col-roster .roster-init {
+      font-weight: 700;
+      color: var(--text);
+      margin-right: 0.25rem;
+    }
+
     .schedule-grid .day-col { width: calc(91% / var(--day-cols, 16)); }
+
+    .schedule-grid.has-roster .day-col {
+      width: calc((100% - 9% - 5.5rem) / var(--day-cols, 16));
+    }
 
     .schedule-grid td.cell-violation {
       background: var(--danger-bg);
@@ -376,6 +430,13 @@
 
     .schedule-grid td.cell-leave { color: var(--muted); font-style: italic; }
     .schedule-grid td.cell-special { color: #93c5fd; }
+
+    .schedule-grid td.cell-ot-eligible {
+      background: rgba(59, 130, 246, 0.35) !important;
+      color: #bfdbfe !important;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px #3b82f6;
+    }
 
     .grid-legend {
       display: flex;
@@ -396,6 +457,80 @@
       vertical-align: middle;
       background: var(--danger-bg);
       box-shadow: inset 0 0 0 1px var(--danger);
+    }
+
+    .grid-legend .ot::before {
+      content: '';
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-right: 0.35rem;
+      border-radius: 2px;
+      vertical-align: middle;
+      background: rgba(59, 130, 246, 0.28);
+      box-shadow: inset 0 0 0 1px #3b82f6;
+    }
+
+    #otShiftCode {
+      width: 8rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      padding: 0.25rem 0.4rem;
+      font-family: "Cascadia Code", "Consolas", monospace;
+    }
+
+    .ot-day-panel {
+      display: none;
+      margin-bottom: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border: 2px solid #3b82f6;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .ot-day-panel.visible {
+      display: block;
+    }
+
+    .ot-day-panel h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .ot-day-panel .ot-day-sub {
+      margin: 0 0 0.65rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .ot-day-panel .ot-day-empty {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .ot-day-initials {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .ot-day-initials .ot-init {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      background: rgba(59, 130, 246, 0.35);
+      border: 1px solid #3b82f6;
+      border-radius: 4px;
+      color: #bfdbfe;
+      font-weight: 700;
+      font-family: "Cascadia Code", "Consolas", monospace;
+      font-size: 0.85rem;
     }
   </style>
 </head>
@@ -431,6 +566,11 @@
           Max consecutive days:
           <input type="number" id="maxConsecutiveDays" value="6" min="1" step="1">
         </label>
+        <label>
+          Overtime shift:
+          <input type="text" id="otShiftCode" placeholder="e.g. 2230">
+        </label>
+        <button id="btnCheckOT" class="secondary">Check OT Eligibility</button>
       </div>
       <div id="parseError" class="parse-error" style="display:none"></div>
     </section>
@@ -457,9 +597,11 @@
 
     <section id="resultsSection" style="display:none">
       <h2>Schedule</h2>
-      <div class="grid-legend">
-        <span class="viol">Insufficient rest before shift (&lt; min hours or overlap)</span>
+      <div class="grid-legend" id="gridLegend">
+        <span class="viol">Insufficient rest before scheduled shift (&lt; min hours or overlap)</span>
+        <span class="ot" id="otLegend" style="display:none">Eligible for overtime shift</span>
       </div>
+      <div id="otDayPanel" class="ot-day-panel"></div>
       <div id="results"></div>
     </section>
   </main>
@@ -766,6 +908,22 @@
       TOA: 'Time Off Award',
       WX: 'Hazardous Weather Leave'
     };
+
+    const WMT_OT_LEAVE = new Set([
+      'A', 'AL', 'XTU', 'CTU', 'COS', 'SL', 'FSL', 'LV', 'VAC', 'HOL', 'HL', 'ML', 'MIL', 'RL',
+      'DT', 'CT', 'PT', 'TR', 'TRN', 'TRNG', 'ADMIN', 'AWOL', 'BL', 'CL', 'FL', 'FRLO', 'JURY',
+      'LWOP', 'TOA', 'WX'
+    ]);
+
+    function isOnLeaveForOT(entry) {
+      if (!entry || entry.isWork) return false;
+      const raw = String(entry.code || '').trim();
+      if (!raw) return false;
+      if (/^A\s*</i.test(raw)) return true;
+      const upper = raw.toUpperCase();
+      if (/^FSL-\d+$/.test(upper)) return true;
+      return WMT_OT_LEAVE.has(upper);
+    }
 
     function classifyWMTCell(code) {
       const raw = String(code || '').trim();
@@ -1559,6 +1717,174 @@
       return max;
     }
 
+    function buildHypotheticalShift(gridDate, shiftCode) {
+      const info = parseWMTShiftCode(shiftCode);
+      if (!info) return null;
+      const isMidShift = isMidShiftOnColumn(info);
+      const start = combineDateTime(shiftStartDate(gridDate, info), info.start);
+      const end = new Date(start.getTime() + info.hours * 3600000);
+      return { start, end, columnDate: gridDate, isMidShift, code: shiftCode };
+    }
+
+    function formatPersonRoster(name) {
+      const m = String(name).trim().match(/^([A-Z]{2})\s*-\s*(.+)$/i);
+      if (m) return { initials: m[1].toUpperCase(), label: m[2].trim() };
+      return { initials: name.slice(0, 2).toUpperCase(), label: name };
+    }
+
+    function formatSelectedDateLabel(date, dateLabel) {
+      if (date instanceof Date && !isNaN(date)) {
+        const wd = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const md = date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        return `${wd} ${md}`;
+      }
+      return dateLabel || '';
+    }
+
+    function getOTEligibleInitialsForDay(colIndex) {
+      if (!otEligibleMap || colIndex == null || !lastGridMeta?.dates?.[colIndex]) return [];
+      const dk = dateKey(lastGridMeta.dates[colIndex]);
+      const names = lastGridMeta.personOrder?.length
+        ? lastGridMeta.personOrder
+        : [...new Set((lastGridMeta.schedule || []).map(s => s.name))].sort();
+      const initials = [];
+      for (const name of names) {
+        const info = otEligibleMap.get(`${name}|${dk}`);
+        if (info?.eligible) initials.push(formatPersonRoster(name).initials);
+      }
+      return initials;
+    }
+
+    function updateOtDayPanel() {
+      const panel = document.getElementById('otDayPanel');
+      if (!panel) return;
+
+      if (selectedColIndex == null || !lastGridMeta?.dates?.length) {
+        panel.classList.remove('visible');
+        panel.innerHTML = '';
+        return;
+      }
+
+      const date = lastGridMeta.dates[selectedColIndex];
+      const dateLabel = lastGridMeta.dateLabels?.[selectedColIndex];
+      const dayLabel = formatSelectedDateLabel(date, dateLabel);
+      const initials = getOTEligibleInitialsForDay(selectedColIndex);
+
+      let html = `<h3>OT Eligible — ${escapeHtml(dayLabel)}</h3>`;
+      if (otShiftLabel) {
+        html += `<p class="ot-day-sub">Shift: ${escapeHtml(otShiftLabel)}</p>`;
+      } else {
+        html += '<p class="ot-day-sub">Enter an overtime shift and click Check OT Eligibility.</p>';
+      }
+
+      if (!otEligibleMap) {
+        html += '<p class="ot-day-empty">Run Check OT Eligibility to see who can work OT this day.</p>';
+      } else if (!initials.length) {
+        html += `<p class="ot-day-empty">No one eligible${otShiftLabel ? ` for ${escapeHtml(otShiftLabel)}` : ''} on this day.</p>`;
+      } else {
+        html += `<div class="ot-day-initials">${initials.map(i => `<span class="ot-init">${escapeHtml(i)}</span>`).join('')}</div>`;
+        html += `<p class="ot-day-sub">${initials.length} eligible</p>`;
+      }
+
+      panel.innerHTML = html;
+      panel.classList.add('visible');
+    }
+
+    function computeOTEligibility(shifts, schedule, dates, personOrder, otCode, minRestMs, maxConsecutive) {
+      const map = new Map();
+      const byPerson = {};
+      for (const s of shifts) {
+        if (!byPerson[s.name]) byPerson[s.name] = [];
+        byPerson[s.name].push(s);
+      }
+
+      const workDayByPerson = {};
+      for (const entry of schedule || []) {
+        if (entry.isWork) {
+          if (!workDayByPerson[entry.name]) workDayByPerson[entry.name] = new Set();
+          workDayByPerson[entry.name].add(dateKey(entry.date));
+        }
+      }
+
+      const names = personOrder?.length
+        ? personOrder
+        : [...new Set((schedule || []).map(s => s.name))].sort();
+
+      for (const name of names) {
+        const personShifts = (byPerson[name] || []).slice().sort((a, b) => a.start - b.start);
+
+        for (const gridDate of dates) {
+          const dk = dateKey(gridDate);
+          const key = `${name}|${dk}`;
+
+          if (workDayByPerson[name]?.has(dk)) {
+            map.set(key, { eligible: false, reason: 'Already scheduled to work' });
+            continue;
+          }
+
+          const entry = (schedule || []).find(e => e.name === name && dateKey(e.date) === dk);
+          if (entry && isOnLeaveForOT(entry)) {
+            map.set(key, { eligible: false, reason: entry.typeLabel || 'On leave' });
+            continue;
+          }
+
+          const hypo = buildHypotheticalShift(gridDate, otCode);
+          if (!hypo) {
+            map.set(key, { eligible: false, reason: 'Invalid shift code' });
+            continue;
+          }
+
+          const overlaps = personShifts.some(s => hypo.start < s.end && hypo.end > s.start);
+          if (overlaps) {
+            map.set(key, { eligible: false, reason: 'Overlaps an existing shift' });
+            continue;
+          }
+
+          const prevWork = personShifts.filter(s => s.end <= hypo.start)
+            .sort((a, b) => b.end - a.end)[0];
+          if (prevWork) {
+            const restBefore = hypo.start - prevWork.end;
+            if (restBefore < minRestMs) {
+              map.set(key, {
+                eligible: false,
+                reason: `${formatDuration(restBefore)} rest before (need ${formatDuration(minRestMs)})`
+              });
+              continue;
+            }
+          }
+
+          const nextWork = personShifts.filter(s => s.start >= hypo.end)
+            .sort((a, b) => a.start - b.start)[0];
+          if (nextWork) {
+            const restAfter = nextWork.start - hypo.end;
+            if (restAfter < minRestMs) {
+              map.set(key, {
+                eligible: false,
+                reason: `${formatDuration(restAfter)} rest after (need ${formatDuration(minRestMs)})`
+              });
+              continue;
+            }
+          }
+
+          const workDayKeys = [...new Set(personShifts.map(s => dateKey(s.columnDate || s.start)))];
+          if (!workDayKeys.includes(dk)) workDayKeys.push(dk);
+          workDayKeys.sort();
+          const maxStreak = computeMaxStreak(workDayKeys);
+          if (maxStreak > maxConsecutive) {
+            map.set(key, {
+              eligible: false,
+              reason: `Would work ${maxStreak} consecutive days (max ${maxConsecutive})`
+            });
+            continue;
+          }
+
+          map.set(key, { eligible: true, reason: 'Eligible for overtime' });
+        }
+      }
+
+      return map;
+    }
+
     // ── Rendering ──
     function formatGridDateHeader(date) {
       const wd = date.toLocaleDateString('en-US', { weekday: 'narrow' });
@@ -1566,7 +1892,7 @@
       return { wd, md };
     }
 
-    function renderScheduleGrid(results, schedule, dates, dateLabels, personOrder) {
+    function renderScheduleGrid(results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex) {
       const violationMap = new Map();
       for (const person of results) {
         for (const row of person.rows) {
@@ -1586,32 +1912,60 @@
         : [...new Set((schedule || []).map(s => s.name))].sort();
       const dateKeys = dates.map(d => dateKey(d));
 
-      let html = `<div class="schedule-grid-wrap"><table class="schedule-grid" style="--day-cols:${dates.length}"><thead><tr>`;
+      const showRoster = selectedColIndex !== null && selectedColIndex >= 0;
+      const tableCls = ['schedule-grid', showRoster ? 'has-roster' : ''].filter(Boolean).join(' ');
+
+      let html = `<div class="schedule-grid-wrap"><table class="${tableCls}" style="--day-cols:${dates.length}"><colgroup>`;
+      html += '<col class="name-col">';
+      for (let i = 0; i < dates.length; i++) {
+        if (showRoster && selectedColIndex === i) {
+          html += '<col class="col-roster">';
+        }
+        html += '<col class="day-col">';
+      }
+      html += '</colgroup><thead><tr>';
       html += '<th class="name-col">Name</th>';
       for (let i = 0; i < dates.length; i++) {
+        if (showRoster && selectedColIndex === i) {
+          html += '<th class="col-roster">Who</th>';
+        }
         const { wd, md } = formatGridDateHeader(dates[i]);
-        html += `<th class="day-col"><span class="day-wd">${escapeHtml(wd)}</span><span class="day-md">${escapeHtml(md)}</span></th>`;
+        const colCls = ['day-col', 'date-header', selectedColIndex === i ? 'col-selected' : ''].filter(Boolean).join(' ');
+        html += `<th class="${colCls}" data-col="${i}"><span class="day-wd">${escapeHtml(wd)}</span><span class="day-md">${escapeHtml(md)}</span></th>`;
       }
       html += '</tr></thead><tbody>';
 
       for (const name of names) {
         html += `<tr><th class="name-col" title="${escapeHtml(name)}">${escapeHtml(name)}</th>`;
         for (let i = 0; i < dates.length; i++) {
+          if (showRoster && selectedColIndex === i) {
+            const roster = formatPersonRoster(name);
+            html += `<td class="col-roster" title="${escapeHtml(name)}"><span class="roster-init">${escapeHtml(roster.initials)}</span> ${escapeHtml(roster.label)}</td>`;
+          }
           const dk = dateKeys[i];
           const key = `${name}|${dk}`;
           const entry = cellMap.get(key);
           const code = entry?.code || '';
+          const onLeave = isOnLeaveForOT(entry);
           const isViol = violationMap.has(key);
+          const otInfo = otEligibleMap?.get(key);
+          const isOT = !!(otInfo?.eligible && !onLeave);
           const cls = [
             'day-col',
+            selectedColIndex === i ? 'col-selected' : '',
             isViol ? 'cell-violation' : '',
-            entry && !entry.isWork && code ? 'cell-leave' : '',
-            entry?.isWork && entry.typeLabel ? 'cell-special' : ''
+            isOT ? 'cell-ot-eligible' : '',
+            !isViol && !isOT && onLeave ? 'cell-leave' : '',
+            !isViol && !isOT && entry?.isWork && entry.typeLabel ? 'cell-special' : ''
           ].filter(Boolean).join(' ');
           let title = code;
           if (isViol) title = `${code} — insufficient rest: ${violationMap.get(key)}`;
+          else if (isOT && otShiftLabel) title = `Eligible for ${otShiftLabel} OT`;
+          else if (onLeave && otShiftLabel) title = `${code} — ${entry.typeLabel || 'On leave'}`;
+          else if (otInfo && !otInfo.eligible && otShiftLabel) title = `${code || '(off)'} — not eligible: ${otInfo.reason}`;
           else if (entry?.typeLabel) title = `${code} — ${entry.typeLabel}`;
-          html += `<td class="${cls}" title="${escapeHtml(title)}">${escapeHtml(code)}</td>`;
+          const display = (isOT && !code && otShiftLabel) ? otShiftLabel : code;
+          html += `<td class="${cls}" data-col="${i}" title="${escapeHtml(title)}">${escapeHtml(display)}</td>`;
         }
         html += '</tr>';
       }
@@ -1620,7 +1974,7 @@
       return html;
     }
 
-    function renderResults(results, parseErrors, gridMeta) {
+    function renderResults(results, parseErrors, gridMeta, otEligibleMap, otShiftLabel) {
       const minRestH = +document.getElementById('minRestHours').value || 10;
       const maxDays = +document.getElementById('maxConsecutiveDays').value || 6;
 
@@ -1631,13 +1985,24 @@
       const peopleWithShortRest = results.filter(r => r.shortRestCount > 0).length;
       const peopleWithStreaks = results.filter(r => r.streaks.length > 0).length;
       const peopleWithOverlap = results.filter(r => r.overlapCount > 0).length;
+      const otEligibleCount = otEligibleMap
+        ? [...otEligibleMap.values()].filter(v => v.eligible).length
+        : 0;
 
-      document.getElementById('summary').innerHTML = `
+      let summaryHtml = `
         <div class="stat ok"><div class="value">${results.length}</div><div class="label">People</div></div>
         <div class="stat ok"><div class="value">${totalShifts}</div><div class="label">Work Shifts</div></div>
         <div class="stat ${peopleWithShortRest || peopleWithOverlap ? 'danger' : 'ok'}"><div class="value">${peopleWithShortRest + peopleWithOverlap}</div><div class="label">Rest Violations</div></div>
-        <div class="stat ${peopleWithStreaks ? 'danger' : 'ok'}"><div class="value">${peopleWithStreaks}</div><div class="label">${maxDays + 1}+ Day Streaks</div></div>
-      `;
+        <div class="stat ${peopleWithStreaks ? 'danger' : 'ok'}"><div class="value">${peopleWithStreaks}</div><div class="label">${maxDays + 1}+ Day Streaks</div></div>`;
+      if (otEligibleMap && otShiftLabel) {
+        summaryHtml += `<div class="stat ok"><div class="value">${otEligibleCount}</div><div class="label">OT Eligible (${escapeHtml(otShiftLabel)})</div></div>`;
+      }
+      document.getElementById('summary').innerHTML = summaryHtml;
+
+      document.getElementById('otLegend').style.display = otEligibleMap ? '' : 'none';
+      if (otEligibleMap && otShiftLabel) {
+        document.getElementById('otLegend').textContent = `Eligible for ${otShiftLabel} overtime`;
+      }
 
       const errEl = document.getElementById('parseError');
       if (parseErrors.length) {
@@ -1650,16 +2015,21 @@
       const container = document.getElementById('results');
       if (!results.length) {
         container.innerHTML = '<div class="empty-state">No results to display.</div>';
+        updateOtDayPanel();
         return;
       }
 
       const { schedule, dates, dateLabels, personOrder } = gridMeta || {};
       if (dates?.length && schedule?.length) {
-        container.innerHTML = renderScheduleGrid(results, schedule, dates, dateLabels, personOrder);
+        container.innerHTML = renderScheduleGrid(
+          results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex
+        );
+        updateOtDayPanel();
         return;
       }
 
       container.innerHTML = '<div class="empty-state">Grid view requires WMT schedule data.</div>';
+      updateOtDayPanel();
     }
 
     function escapeHtml(str) {
@@ -1668,12 +2038,60 @@
 
     let scheduleData = '';
     let analyzeTimer = null;
+    let lastResults = null;
+    let lastGridMeta = null;
+    let lastShifts = null;
+    let otEligibleMap = null;
+    let otShiftLabel = null;
+    let selectedColIndex = null;
+
+    function refreshGridView() {
+      if (!lastResults || !lastGridMeta) return;
+      renderResults(lastResults, [], lastGridMeta, otEligibleMap, otShiftLabel);
+    }
 
     function scheduleAnalysis() {
       clearTimeout(analyzeTimer);
       analyzeTimer = setTimeout(() => {
         if (scheduleData.trim()) runAnalysis();
+        else if (lastResults && document.getElementById('otShiftCode').value.trim()) checkOvertimeEligibility();
       }, 300);
+    }
+
+    function checkOvertimeEligibility() {
+      const code = document.getElementById('otShiftCode').value.trim();
+      if (!code) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = 'Enter an overtime shift code (e.g. 2230, 0700-10).';
+        return;
+      }
+      if (!lastResults || !lastGridMeta?.dates?.length) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = 'Load a schedule from the clipboard first.';
+        return;
+      }
+      if (!parseWMTShiftCode(code)) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = `Unknown shift code "${code}" — check the ZOB shift legend.`;
+        return;
+      }
+
+      const minRestMs = (+document.getElementById('minRestHours').value || 10) * 3600000;
+      const maxConsecutive = +document.getElementById('maxConsecutiveDays').value || 6;
+
+      otShiftLabel = code.toUpperCase();
+      otEligibleMap = computeOTEligibility(
+        lastShifts,
+        lastGridMeta.schedule,
+        lastGridMeta.dates,
+        lastGridMeta.personOrder,
+        code,
+        minRestMs,
+        maxConsecutive
+      );
+
+      document.getElementById('parseError').style.display = 'none';
+      renderResults(lastResults, [], lastGridMeta, otEligibleMap, otShiftLabel);
     }
 
     function runAnalysis() {
@@ -1695,7 +2113,17 @@
 
         document.getElementById('parseError').style.display = 'none';
         const results = analyzeShifts(shifts, schedule || [], minRestMs, maxConsecutive);
-        renderResults(results, errors, { schedule, dates, dateLabels, personOrder });
+        lastResults = results;
+        lastShifts = shifts;
+        lastGridMeta = { schedule, dates, dateLabels, personOrder };
+        otEligibleMap = null;
+        otShiftLabel = null;
+        selectedColIndex = null;
+        document.getElementById('otLegend').style.display = 'none';
+        renderResults(results, errors, lastGridMeta, null, null);
+
+        const otCode = document.getElementById('otShiftCode').value.trim();
+        if (otCode) checkOvertimeEligibility();
       } catch (e) {
         document.getElementById('parseError').style.display = 'block';
         document.getElementById('parseError').textContent = e.message;
@@ -1727,6 +2155,7 @@
 
     // ── Event listeners ──
     document.getElementById('btnClipboard').addEventListener('click', readClipboard);
+    document.getElementById('btnCheckOT').addEventListener('click', checkOvertimeEligibility);
 
     document.addEventListener('paste', (e) => {
       const text = e.clipboardData?.getData('text');
@@ -1737,8 +2166,17 @@
     });
 
     document.getElementById('results').addEventListener('click', (e) => {
+      const header = e.target.closest('th.date-header[data-col]');
+      if (header) {
+        e.stopPropagation();
+        const col = parseInt(header.dataset.col, 10);
+        selectedColIndex = (selectedColIndex === col) ? null : col;
+        refreshGridView();
+        return;
+      }
+
       const row = e.target.closest('.schedule-grid tbody tr');
-      if (!row) return;
+      if (!row || e.target.closest('th.date-header')) return;
       if (row.classList.contains('row-active')) {
         row.classList.remove('row-active');
         return;
@@ -1751,6 +2189,17 @@
     document.getElementById('minRestHours').addEventListener('change', scheduleAnalysis);
     document.getElementById('maxConsecutiveDays').addEventListener('change', scheduleAnalysis);
     document.getElementById('personFilter').addEventListener('change', scheduleAnalysis);
+    document.getElementById('otShiftCode').addEventListener('input', () => {
+      if (lastResults && document.getElementById('otShiftCode').value.trim()) {
+        clearTimeout(analyzeTimer);
+        analyzeTimer = setTimeout(checkOvertimeEligibility, 300);
+      } else {
+        otEligibleMap = null;
+        otShiftLabel = null;
+        document.getElementById('otLegend').style.display = 'none';
+        if (lastResults) refreshGridView();
+      }
+    });
   </script>
 </body>
 </html>
