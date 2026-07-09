@@ -609,11 +609,25 @@
   <script>
     // ── Bookmarklet source (also embedded in the page link) ──
     const BOOKMARKLET = `(function(){
-      function copyText(text,msg){
+      function showToast(msg,err){
+        var el=document.getElementById('sa-copy-toast');
+        if(!el){
+          el=document.createElement('div');
+          el.id='sa-copy-toast';
+          el.style.cssText='position:fixed;top:16px;right:16px;z-index:2147483647;padding:10px 16px;border-radius:6px;font:600 14px/1.3 system-ui,sans-serif;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.35);transition:opacity .3s;pointer-events:none';
+          document.body.appendChild(el);
+        }
+        el.style.background=err?'#dc2626':'#16a34a';
+        el.textContent=msg;
+        el.style.opacity='1';
+        clearTimeout(el._t);
+        el._t=setTimeout(function(){el.style.opacity='0';},err?3500:2000);
+      }
+      function copyText(text){
         if(navigator.clipboard&&navigator.clipboard.writeText){
-          navigator.clipboard.writeText(text).then(function(){ alert(msg); })
-            .catch(function(){ prompt('Copy this data:',text); });
-        }else{ prompt('Copy this data:',text); }
+          navigator.clipboard.writeText(text).then(function(){showToast('Copy successful');})
+            .catch(function(){showToast('Copy error',1);});
+        }else{showToast('Copy error',1);}
       }
       function extractWMTGrid(){
         var grid=document.getElementById('tblEditGrid');
@@ -644,7 +658,7 @@
       }
       var wmt=extractWMTGrid();
       if(wmt){
-        copyText(wmt.join('\\n'),'Copied WMT schedule: '+wmt.length+' row(s) from Edit Schedule grid.\\n\\nOpen shift-analyzer.html and click Parse from Clipboard.');
+        copyText(wmt.join('\\n'));
         return;
       }
       function cellText(c){
@@ -670,8 +684,8 @@
         var sel=window.getSelection?window.getSelection().toString():'';
         if(sel.trim()) rows=sel.trim().split(/\\r?\\n/);
       }
-      if(!rows.length){ alert('No schedule table found. Open WMT Schedules → Edit Non Published (tblEditGrid) or select table text.'); return; }
-      copyText(rows.join('\\n'),'Copied '+rows.length+' row(s) from '+tables.length+' table(s).\\n\\nOpen shift-analyzer.html and click Parse from Clipboard.');
+      if(!rows.length){ showToast('Copy error',1); return; }
+      copyText(rows.join('\\n'));
     })();`;
 
     document.getElementById('bookmarkletLink').href =
