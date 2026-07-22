@@ -34,11 +34,107 @@
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
-      padding: 1.25rem 1.5rem;
+      padding: 0.75rem 1.5rem;
+      position: relative;
     }
 
-    header h1 {
-      font-size: 1.5rem;
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .menu-wrap {
+      position: relative;
+    }
+
+    .menu-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .menu-btn:hover { background: var(--border); }
+
+    .settings-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.35rem);
+      left: 0;
+      z-index: 100;
+      min-width: 18rem;
+      max-width: 22rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .settings-menu.open { display: block; }
+
+    .settings-menu h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.65rem;
+    }
+
+    .settings-menu label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--text);
+      margin-bottom: 0.55rem;
+    }
+
+    .settings-menu label:last-child { margin-bottom: 0; }
+
+    .settings-menu input[type="number"] {
+      width: 4.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      padding: 0.3rem 0.4rem;
+      font-size: 0.875rem;
+    }
+
+    .settings-menu-divider {
+      border-top: 1px solid var(--border);
+      margin: 0.75rem 0;
+    }
+
+    .settings-menu .menu-help {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.35;
+    }
+
+    .settings-menu .bookmarklet-box {
+      margin-top: 0;
+      padding: 0.75rem;
+    }
+
+    .settings-menu .bookmarklet-box ol {
+      margin: 0.5rem 0 0 1.1rem;
+    }
+
+    .header-title h1 {
+      font-size: 1.35rem;
       font-weight: 600;
     }
 
@@ -536,18 +632,41 @@
 </head>
 <body>
   <header>
-    <h1>Shift Schedule Analyzer</h1>
-    <p>Import schedule data from the clipboard to check rest between shifts and consecutive-day streaks.</p>
+    <div class="app-header">
+      <div class="menu-wrap">
+        <button id="btnMenu" class="menu-btn" type="button" aria-expanded="false" aria-controls="settingsMenu">☰ Menu</button>
+        <div id="settingsMenu" class="settings-menu" role="dialog" aria-label="Analyzer menu">
+          <h2>Analysis Rules</h2>
+          <label>
+            Minimum rest (hours)
+            <input type="number" id="minRestHours" value="10" min="0" step="0.5">
+          </label>
+          <label>
+            Max consecutive days
+            <input type="number" id="maxConsecutiveDays" value="6" min="1" step="1">
+          </label>
+          <div class="settings-menu-divider"></div>
+          <h2>Bookmarklet</h2>
+          <p class="menu-help">Drag to your bookmarks bar, then click it on WMT <strong>Schedules → Edit Non Published</strong>.</p>
+          <div class="bookmarklet-box">
+            <a id="bookmarkletLink" href="#">📋 Copy Schedule Table</a>
+            <ol>
+              <li>Drag the button above to your bookmarks bar.</li>
+              <li>Open your schedule in WMT and click the bookmark.</li>
+              <li>Return here and click <strong>Parse from Clipboard</strong> (or Ctrl+V).</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+      <div class="header-title">
+        <h1>Shift Schedule Analyzer</h1>
+      </div>
+    </div>
   </header>
 
   <main>
     <section>
       <h2>Input Data</h2>
-      <p class="help-text">
-        Use the bookmarklet on WMT <strong>Schedules → Edit Non Published</strong>, then click <strong>Parse from Clipboard</strong>
-        (or press Ctrl+V on this page). Select the <strong>Area</strong> that matches your schedule so shift times parse correctly.
-        <strong>Mid shifts</strong> (e.g. 2230, 2100) start the <em>evening before</em> their schedule column date.
-      </p>
       <div class="settings" style="margin-bottom:0.75rem">
         <label>
           Area:
@@ -563,23 +682,11 @@
           </select>
         </label>
         <span id="areaLegendInfo" class="help-text" style="margin:0 0 0 0.5rem"></span>
-        <label style="margin-left:1rem">
-          WMT person filter (optional):
-          <input type="text" id="personFilter" placeholder="e.g. Initials or Last Name" style="width:14rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:0.25rem 0.4rem">
-        </label>
       </div>
       <div class="controls">
         <button id="btnClipboard">Parse from Clipboard</button>
       </div>
       <div class="settings">
-        <label>
-          Minimum rest (hours):
-          <input type="number" id="minRestHours" value="10" min="0" step="0.5">
-        </label>
-        <label>
-          Max consecutive days:
-          <input type="number" id="maxConsecutiveDays" value="6" min="1" step="1">
-        </label>
         <label>
           Overtime shift:
           <input type="text" id="otShiftCode" placeholder="e.g. 2230">
@@ -587,21 +694,6 @@
         <button id="btnCheckOT" class="secondary">Check OT Eligibility</button>
       </div>
       <div id="parseError" class="parse-error" style="display:none"></div>
-    </section>
-
-    <section>
-      <h2>Bookmarklet — Grab Data from a Webpage</h2>
-      <p class="help-text">
-        Drag the button below to your bookmarks bar. On a schedule page, click it to copy table data to your clipboard, then return here and click "Parse from Clipboard".
-      </p>
-      <div class="bookmarklet-box">
-        <a id="bookmarkletLink" href="#">📋 Copy Schedule Table</a>
-        <ol>
-          <li>Drag the button above to your bookmarks bar.</li>
-          <li>Open WMT <strong>Schedules → Edit Non Published</strong>, pick your area (e.g. AREA 8), and click the bookmark.</li>
-          <li>Come back here and click <strong>Parse from Clipboard</strong> (or press Ctrl+V).</li>
-        </ol>
-      </div>
     </section>
 
     <section id="summarySection" style="display:none">
@@ -1327,7 +1419,6 @@
       let personRows = 0;
       let staffingRows = 0;
       let assignmentsFound = 0;
-      const filter = (document.getElementById('personFilter').value || '').trim().toLowerCase();
 
       interpretations.push({
         lineNum: 0,
@@ -1361,8 +1452,6 @@
         // Person assignment row
         if (isWMTPersonRow(label)) {
           personRows++;
-          if (filter && !label.toLowerCase().includes(filter)) continue;
-
           const personName = label.trim();
           if (!personOrder.includes(personName)) personOrder.push(personName);
 
@@ -2102,8 +2191,30 @@
       clearTimeout(analyzeTimer);
       analyzeTimer = setTimeout(() => {
         if (scheduleData.trim()) runAnalysis();
-        else if (lastResults && document.getElementById('otShiftCode').value.trim()) checkOvertimeEligibility();
+        else if (lastResults) {
+          if (document.getElementById('otShiftCode').value.trim()) checkOvertimeEligibility();
+          else refreshGridView();
+        }
       }, 300);
+    }
+
+    function loadAnalysisSettings() {
+      if (typeof localStorage === 'undefined') return;
+      const rest = localStorage.getItem('shiftAnalyzerMinRest');
+      const maxDays = localStorage.getItem('shiftAnalyzerMaxDays');
+      if (rest != null) document.getElementById('minRestHours').value = rest;
+      if (maxDays != null) document.getElementById('maxConsecutiveDays').value = maxDays;
+    }
+
+    function saveAnalysisSettings() {
+      if (typeof localStorage === 'undefined') return;
+      localStorage.setItem('shiftAnalyzerMinRest', document.getElementById('minRestHours').value);
+      localStorage.setItem('shiftAnalyzerMaxDays', document.getElementById('maxConsecutiveDays').value);
+    }
+
+    function onAnalysisSettingChange() {
+      saveAnalysisSettings();
+      scheduleAnalysis();
     }
 
     function checkOvertimeEligibility() {
@@ -2206,6 +2317,26 @@
     document.getElementById('btnClipboard').addEventListener('click', readClipboard);
     document.getElementById('btnCheckOT').addEventListener('click', checkOvertimeEligibility);
 
+    const settingsMenu = document.getElementById('settingsMenu');
+    const btnMenu = document.getElementById('btnMenu');
+    btnMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = settingsMenu.classList.toggle('open');
+      btnMenu.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    settingsMenu.addEventListener('click', (e) => e.stopPropagation());
+    document.getElementById('bookmarkletLink').addEventListener('mousedown', (e) => e.stopPropagation());
+    document.addEventListener('click', () => {
+      settingsMenu.classList.remove('open');
+      btnMenu.setAttribute('aria-expanded', 'false');
+    });
+
+    loadAnalysisSettings();
+    document.getElementById('minRestHours').addEventListener('input', onAnalysisSettingChange);
+    document.getElementById('minRestHours').addEventListener('change', onAnalysisSettingChange);
+    document.getElementById('maxConsecutiveDays').addEventListener('input', onAnalysisSettingChange);
+    document.getElementById('maxConsecutiveDays').addEventListener('change', onAnalysisSettingChange);
+
     document.getElementById('areaSelect').addEventListener('change', (e) => {
       setActiveArea(e.target.value);
       if (scheduleData.trim()) runAnalysis();
@@ -2242,9 +2373,6 @@
       row.classList.add('row-active');
     });
 
-    document.getElementById('minRestHours').addEventListener('change', scheduleAnalysis);
-    document.getElementById('maxConsecutiveDays').addEventListener('change', scheduleAnalysis);
-    document.getElementById('personFilter').addEventListener('change', scheduleAnalysis);
     document.getElementById('otShiftCode').addEventListener('input', () => {
       if (lastResults && document.getElementById('otShiftCode').value.trim()) {
         clearTimeout(analyzeTimer);
