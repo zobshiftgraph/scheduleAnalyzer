@@ -385,30 +385,29 @@
 
     .schedule-grid-wrap {
       overflow-x: auto;
-      overflow-y: auto;
-      max-height: 75vh;
+      overflow-y: visible;
       border: 1px solid var(--border);
       border-radius: 8px;
       width: 100%;
     }
 
     .schedule-grid {
-      width: 100%;
-      table-layout: fixed;
+      width: max-content;
+      min-width: 100%;
+      table-layout: auto;
       border-collapse: collapse;
-      font-size: clamp(0.55rem, 0.45vw + 0.45rem, 0.72rem);
+      font-size: 0.72rem;
       font-family: "Cascadia Code", "Consolas", monospace;
     }
 
     .schedule-grid th,
     .schedule-grid td {
-      padding: 0.2rem 0.15rem;
+      padding: 0.28rem 0.35rem;
       text-align: center;
       border: 1px solid var(--border);
-      overflow: hidden;
-      text-overflow: ellipsis;
+      overflow: visible;
       white-space: nowrap;
-      line-height: 1.2;
+      line-height: 1.25;
     }
 
     .schedule-grid thead th {
@@ -416,7 +415,7 @@
       top: 0;
       background: var(--surface2);
       z-index: 2;
-      font-size: clamp(0.5rem, 0.4vw + 0.4rem, 0.68rem);
+      font-size: 0.68rem;
       font-weight: 600;
       color: var(--muted);
       text-transform: none;
@@ -445,9 +444,11 @@
       background: var(--surface2);
       z-index: 1;
       font-weight: 600;
-      width: 9%;
-      max-width: 9rem;
-      padding-left: 0.35rem;
+      width: auto;
+      min-width: 12rem;
+      max-width: none;
+      padding-left: 0.45rem;
+      padding-right: 0.5rem;
     }
 
     .schedule-grid thead .name-col { z-index: 3; }
@@ -487,16 +488,16 @@
     .schedule-grid th.col-roster,
     .schedule-grid td.col-roster {
       text-align: left;
-      font-size: clamp(0.5rem, 0.4vw + 0.38rem, 0.65rem);
-      padding-left: 0.35rem;
-      padding-right: 0.25rem;
+      font-size: 0.68rem;
+      padding-left: 0.4rem;
+      padding-right: 0.4rem;
       background: var(--surface2);
       border-left: 2px solid var(--text);
       border-right: 2px solid var(--text);
       white-space: nowrap;
-      width: 5.5rem;
-      min-width: 5.5rem;
-      max-width: 6rem;
+      width: auto;
+      min-width: 8rem;
+      max-width: none;
     }
 
     .schedule-grid th.col-roster {
@@ -511,10 +512,14 @@
       margin-right: 0.25rem;
     }
 
-    .schedule-grid .day-col { width: calc(91% / var(--day-cols, 16)); }
+    .schedule-grid .day-col {
+      min-width: 5.75rem;
+      width: auto;
+    }
 
-    .schedule-grid.has-roster .day-col {
-      width: calc((100% - 9% - 5.5rem) / var(--day-cols, 16));
+    .schedule-grid th.period-start,
+    .schedule-grid td.period-start {
+      border-left: 2px solid var(--accent);
     }
 
     .schedule-grid td.cell-violation {
@@ -522,6 +527,13 @@
       color: var(--danger);
       font-weight: 700;
       box-shadow: inset 0 0 0 1px var(--danger);
+    }
+
+    .schedule-grid td.cell-streak {
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px var(--warn);
     }
 
     .schedule-grid td.cell-leave { color: var(--muted); font-style: italic; }
@@ -565,6 +577,103 @@
       vertical-align: middle;
       background: rgba(59, 130, 246, 0.28);
       box-shadow: inset 0 0 0 1px #3b82f6;
+    }
+
+    .grid-legend .streak::before {
+      content: '';
+      display: inline-block;
+      width: 0.75rem;
+      height: 0.75rem;
+      margin-right: 0.35rem;
+      border-radius: 2px;
+      vertical-align: middle;
+      background: var(--warn-bg);
+      box-shadow: inset 0 0 0 1px var(--warn);
+    }
+
+    .pay-periods {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .pay-period-slot {
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.7rem;
+      min-height: 4.5rem;
+    }
+
+    .pay-period-slot.loaded {
+      border-style: solid;
+      border-color: var(--accent);
+    }
+
+    .pay-period-slot .pp-kicker {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .pay-period-slot .pp-range {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin: 0.2rem 0 0.15rem;
+    }
+
+    .pay-period-slot .pp-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .pay-period-slot .pp-empty {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
+    .pay-period-slot .pp-clear {
+      margin-top: 0.4rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.15rem 0.5rem;
+      font-size: 0.75rem;
+    }
+
+    .pay-period-slot .pp-clear:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .streak-list {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: var(--warn-bg);
+      border: 1px solid var(--warn);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .streak-list h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--warn);
+      margin-bottom: 0.4rem;
+    }
+
+    .streak-list li {
+      margin-left: 1.1rem;
+      margin-bottom: 0.2rem;
+    }
+
+    @media (max-width: 800px) {
+      .pay-periods { grid-template-columns: 1fr; }
     }
 
     #otShiftCode {
@@ -652,8 +761,9 @@
             <a id="bookmarkletLink" href="#">📋 Copy Schedule Table</a>
             <ol>
               <li>Drag the button above to your bookmarks bar.</li>
-              <li>Open your schedule in WMT and click the bookmark.</li>
-              <li>Return here and click <strong>Parse from Clipboard</strong> (or Ctrl+V).</li>
+              <li>Open a pay period in WMT and click the bookmark.</li>
+              <li>Return here and click <strong>Add Pay Period</strong> (or Ctrl+V).</li>
+              <li>Repeat for up to 3 pay periods (previous, current, next) so 7-day streaks across boundaries are caught.</li>
             </ol>
           </div>
         </div>
@@ -667,6 +777,7 @@
   <main>
     <section>
       <h2>Input Data</h2>
+      <p class="help-text">Paste up to 3 pay periods (previous, current, and next) so 7 consecutive work days that cross a pay-period boundary are detected.</p>
       <div class="settings" style="margin-bottom:0.75rem">
         <label>
           Area:
@@ -683,8 +794,10 @@
         </label>
         <span id="areaLegendInfo" class="help-text" style="margin:0 0 0 0.5rem"></span>
       </div>
+      <div id="payPeriodSlots" class="pay-periods"></div>
       <div class="controls">
-        <button id="btnClipboard">Parse from Clipboard</button>
+        <button id="btnClipboard">Add Pay Period</button>
+        <button id="btnClearPeriods" class="secondary" type="button" style="display:none">Clear All</button>
       </div>
       <div class="settings">
         <label>
@@ -705,6 +818,7 @@
       <h2>Schedule</h2>
       <div class="grid-legend" id="gridLegend">
         <span class="viol">Insufficient rest before scheduled shift (&lt; min hours or overlap)</span>
+        <span class="streak" id="streakLegend">Part of a consecutive work-day streak over the max</span>
         <span class="ot" id="otLegend" style="display:none">Eligible for overtime shift</span>
       </div>
       <div id="otDayPanel" class="ot-day-panel"></div>
@@ -1413,8 +1527,10 @@
       const schedule = [];
       const errors = [];
       const interpretations = [];
-      let dates = [];
-      let dateLabels = [];
+      let currentDates = [];
+      let headerCount = 0;
+      const dateMap = new Map();
+      const periodStartKeys = [];
       const personOrder = [];
       let personRows = 0;
       let staffingRows = 0;
@@ -1436,14 +1552,20 @@
         if (label.toUpperCase() === 'NAME' || /\d{1,2}\/\d{1,2}\/\d{4}/.test(cols[1] || '')) {
           const parsedDates = cols.slice(1).map(parseWMTDateHeader).filter(Boolean);
           if (parsedDates.length >= 3) {
-            dates = parsedDates;
-            dateLabels = cols.slice(1, 1 + parsedDates.length)
+            currentDates = parsedDates;
+            headerCount++;
+            const labels = cols.slice(1, 1 + parsedDates.length)
               .map(c => c.replace(/\$\$\$\s*/g, '').trim());
+            periodStartKeys.push(dateKey(parsedDates[0]));
+            for (let d = 0; d < parsedDates.length; d++) {
+              const dk = dateKey(parsedDates[d]);
+              if (!dateMap.has(dk)) dateMap.set(dk, { date: parsedDates[d], label: labels[d] || '' });
+            }
             interpretations.push({
               lineNum: i + 1,
               status: 'header',
               raw: label + ' | ' + cols.slice(1, 4).join(' | ') + ' …',
-              note: `Date header — ${dates.length} days from ${formatDate(dates[0])} to ${formatDate(dates[dates.length - 1])}`
+              note: `Date header ${headerCount} — ${parsedDates.length} days from ${formatDate(parsedDates[0])} to ${formatDate(parsedDates[parsedDates.length - 1])}`
             });
             continue;
           }
@@ -1455,7 +1577,7 @@
           const personName = label.trim();
           if (!personOrder.includes(personName)) personOrder.push(personName);
 
-          if (!dates.length) {
+          if (!currentDates.length) {
             interpretations.push({
               lineNum: i + 1,
               status: 'skip',
@@ -1466,14 +1588,14 @@
           }
 
           let personShifts = 0;
-          for (let d = 0; d < dates.length && d + 1 < cols.length; d++) {
+          for (let d = 0; d < currentDates.length && d + 1 < cols.length; d++) {
             const cell = cols[d + 1];
             if (!cell) continue;
 
             const cellInfo = classifyWMTCell(cell);
             schedule.push({
               name: label.trim(),
-              date: dates[d],
+              date: currentDates[d],
               code: cell,
               typeLabel: cellInfo.typeLabel,
               category: cellInfo.category,
@@ -1484,7 +1606,7 @@
               interpretations.push({
                 lineNum: i + 1,
                 status: 'skip',
-                raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+                raw: `${label} · ${formatDate(currentDates[d])} · ${cell}`,
                 note: cellInfo.typeLabel || 'Non-work day'
               });
               continue;
@@ -1496,14 +1618,14 @@
                 interpretations.push({
                   lineNum: i + 1,
                   status: 'error',
-                  raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+                  raw: `${label} · ${formatDate(currentDates[d])} · ${cell}`,
                   note: `Unknown shift code "${cell}" — cannot infer times`
                 });
               }
               continue;
             }
 
-            const gridDate = dates[d];
+            const gridDate = currentDates[d];
             const isMidShift = isMidShiftOnColumn(shiftInfo);
             const start = combineDateTime(shiftStartDate(gridDate, shiftInfo), shiftInfo.start);
             let end = new Date(start.getTime() + shiftInfo.hours * 3600000);
@@ -1524,7 +1646,7 @@
             interpretations.push({
               lineNum: i + 1,
               status: 'ok',
-              raw: `${label} · ${formatDate(dates[d])} · ${cell}`,
+              raw: `${label} · ${formatDate(currentDates[d])} · ${cell}`,
               parsed: {
                 name: label.trim(),
                 date: formatDate(start),
@@ -1570,7 +1692,8 @@
         lineNum: 0,
         status: 'header',
         raw: 'Summary',
-        note: `${personRows} person row(s), ${staffingRows} staffing row(s), ${assignmentsFound} shift assignment(s) parsed`
+        note: `${personRows} person row(s), ${staffingRows} staffing row(s), ${assignmentsFound} shift assignment(s) parsed` +
+          (headerCount > 1 ? `, ${headerCount} pay period header(s)` : '')
       });
 
       if (!shifts.length) {
@@ -1581,14 +1704,19 @@
         );
       }
 
+      const sortedDates = [...dateMap.values()].sort((a, b) => a.date - b.date);
+      const dates = sortedDates.map(x => x.date);
+      const dateLabels = sortedDates.map(x => x.label);
+
       return {
-        shifts,
-        schedule,
+        shifts: dedupeByPersonDay(shifts, s => s.columnDate || s.start),
+        schedule: dedupeByPersonDay(schedule, e => e.date),
         dates,
         dateLabels,
         personOrder,
+        periodStartKeys: uniqueDateKeys(periodStartKeys),
         errors,
-        colMap: { format: 'wmt', dates: dates.length, persons: personRows },
+        colMap: { format: 'wmt', dates: dates.length, persons: personOrder.length, headers: headerCount },
         interpretations
       };
     }
@@ -1688,6 +1816,91 @@
       if (!shifts.length) throw new Error('No valid shifts parsed.' + (errors.length ? '\n' + errors.slice(0, 5).join('\n') : ''));
 
       return { shifts, errors, colMap, interpretations, format: 'simple' };
+    }
+
+    function uniqueDateKeys(keys) {
+      const seen = new Set();
+      const out = [];
+      for (const k of keys || []) {
+        if (!k || seen.has(k)) continue;
+        seen.add(k);
+        out.push(k);
+      }
+      return out;
+    }
+
+    function dedupeByPersonDay(items, getDate) {
+      const map = new Map();
+      for (const item of items || []) {
+        if (!item?.name) continue;
+        const d = getDate(item);
+        if (!d) continue;
+        map.set(`${item.name}|${dateKey(d)}`, item);
+      }
+      return [...map.values()];
+    }
+
+    function describePeriodRange(parsed) {
+      const dates = parsed?.dates || [];
+      if (!dates.length) {
+        return { startKey: '', endKey: '', label: 'Unknown dates', dayCount: 0 };
+      }
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+      const startLabel = start.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+      const endLabel = end.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+      return {
+        startKey: dateKey(start),
+        endKey: dateKey(end),
+        label: `${startLabel} – ${endLabel}`,
+        dayCount: dates.length
+      };
+    }
+
+    function mergeParsedResults(parsedList) {
+      const shifts = [];
+      const schedule = [];
+      const personOrder = [];
+      const dateMap = new Map();
+      const errors = [];
+      const periodStartKeys = [];
+
+      for (const parsed of parsedList || []) {
+        if (!parsed) continue;
+        shifts.push(...(parsed.shifts || []));
+        schedule.push(...(parsed.schedule || []));
+        for (const name of parsed.personOrder || []) {
+          if (!personOrder.includes(name)) personOrder.push(name);
+        }
+        const dates = parsed.dates || [];
+        const labels = parsed.dateLabels || [];
+        if (dates.length) periodStartKeys.push(dateKey(dates[0]));
+        for (const k of parsed.periodStartKeys || []) periodStartKeys.push(k);
+        for (let i = 0; i < dates.length; i++) {
+          const dk = dateKey(dates[i]);
+          if (!dateMap.has(dk)) dateMap.set(dk, { date: dates[i], label: labels[i] || '' });
+        }
+        if (parsed.errors?.length) errors.push(...parsed.errors);
+      }
+
+      const sorted = [...dateMap.values()].sort((a, b) => a.date - b.date);
+      return {
+        shifts: dedupeByPersonDay(shifts, s => s.columnDate || s.start),
+        schedule: dedupeByPersonDay(schedule, e => e.date),
+        dates: sorted.map(x => x.date),
+        dateLabels: sorted.map(x => x.label),
+        personOrder,
+        periodStartKeys: uniqueDateKeys(periodStartKeys),
+        errors
+      };
+    }
+
+    function formatDateKey(dk) {
+      const [y, m, d] = String(dk).split('-').map(Number);
+      if (!y || !m || !d) return dk;
+      return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'numeric', day: 'numeric'
+      });
     }
 
     // ── Analysis ──
@@ -2029,12 +2242,21 @@
       return { wd, md };
     }
 
-    function renderScheduleGrid(results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex) {
+    function renderScheduleGrid(results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex, periodStartKeys) {
       const violationMap = new Map();
+      const streakMap = new Map();
       for (const person of results) {
         for (const row of person.rows) {
           if (row.isWork !== false && row.restStatus === 'danger') {
             violationMap.set(`${person.name}|${row.dateKey}`, row.restLabel);
+          }
+        }
+        for (const s of person.streaks || []) {
+          let d = new Date(s.start + 'T12:00:00');
+          const end = new Date(s.end + 'T12:00:00');
+          while (d <= end) {
+            streakMap.set(`${person.name}|${dateKey(d)}`, s.days);
+            d.setDate(d.getDate() + 1);
           }
         }
       }
@@ -2048,6 +2270,7 @@
         ? personOrder
         : [...new Set((schedule || []).map(s => s.name))].sort();
       const dateKeys = dates.map(d => dateKey(d));
+      const periodStartSet = new Set(periodStartKeys || []);
 
       const showRoster = selectedColIndex !== null && selectedColIndex >= 0;
       const tableCls = ['schedule-grid', showRoster ? 'has-roster' : ''].filter(Boolean).join(' ');
@@ -2067,7 +2290,8 @@
           html += '<th class="col-roster">Who</th>';
         }
         const { wd, md } = formatGridDateHeader(dates[i]);
-        const colCls = ['day-col', 'date-header', selectedColIndex === i ? 'col-selected' : ''].filter(Boolean).join(' ');
+        const isPeriodStart = i > 0 && periodStartSet.has(dateKeys[i]);
+        const colCls = ['day-col', 'date-header', selectedColIndex === i ? 'col-selected' : '', isPeriodStart ? 'period-start' : ''].filter(Boolean).join(' ');
         html += `<th class="${colCls}" data-col="${i}"><span class="day-wd">${escapeHtml(wd)}</span><span class="day-md">${escapeHtml(md)}</span></th>`;
       }
       html += '</tr></thead><tbody>';
@@ -2085,18 +2309,23 @@
           const code = entry?.code || '';
           const onLeave = isOnLeaveForOT(entry);
           const isViol = violationMap.has(key);
+          const isStreak = streakMap.has(key);
           const otInfo = otEligibleMap?.get(key);
           const isOT = !!(otInfo?.eligible && !onLeave);
+          const isPeriodStart = i > 0 && periodStartSet.has(dk);
           const cls = [
             'day-col',
             selectedColIndex === i ? 'col-selected' : '',
+            isPeriodStart ? 'period-start' : '',
             isViol ? 'cell-violation' : '',
+            !isViol && isStreak ? 'cell-streak' : '',
             isOT ? 'cell-ot-eligible' : '',
             !isViol && !isOT && onLeave ? 'cell-leave' : '',
-            !isViol && !isOT && entry?.isWork && entry.typeLabel ? 'cell-special' : ''
+            !isViol && !isOT && !isStreak && entry?.isWork && entry.typeLabel ? 'cell-special' : ''
           ].filter(Boolean).join(' ');
           let title = code;
           if (isViol) title = `${code} — insufficient rest: ${violationMap.get(key)}`;
+          else if (isStreak) title = `${code} — ${streakMap.get(key)} consecutive work days`;
           else if (isOT && otShiftLabel) title = `Eligible for ${otShiftLabel} OT`;
           else if (onLeave && otShiftLabel) title = `${code} — ${entry.typeLabel || 'On leave'}`;
           else if (otInfo && !otInfo.eligible && otShiftLabel) title = `${code || '(off)'} — not eligible: ${otInfo.reason}`;
@@ -2129,12 +2358,29 @@
       let summaryHtml = `
         <div class="stat ok"><div class="value">${results.length}</div><div class="label">People</div></div>
         <div class="stat ok"><div class="value">${totalShifts}</div><div class="label">Work Shifts</div></div>
+        <div class="stat ok"><div class="value">${gridMeta?.dates?.length || 0}</div><div class="label">Days (${payPeriods.length} PP)</div></div>
         <div class="stat ${peopleWithShortRest || peopleWithOverlap ? 'danger' : 'ok'}"><div class="value">${peopleWithShortRest + peopleWithOverlap}</div><div class="label">Rest Violations</div></div>
         <div class="stat ${peopleWithStreaks ? 'danger' : 'ok'}"><div class="value">${peopleWithStreaks}</div><div class="label">${maxDays + 1}+ Day Streaks</div></div>`;
       if (otEligibleMap && otShiftLabel) {
         summaryHtml += `<div class="stat ok"><div class="value">${otEligibleCount}</div><div class="label">OT Eligible (${escapeHtml(otShiftLabel)})</div></div>`;
       }
+
+      const streakPeople = results.filter(r => r.streaks.length);
+      if (streakPeople.length) {
+        summaryHtml += `<div class="streak-list" style="grid-column:1/-1"><h3>${maxDays + 1}+ consecutive work days</h3><ul>`;
+        for (const r of streakPeople) {
+          for (const s of r.streaks) {
+            summaryHtml += `<li><strong>${escapeHtml(r.name)}</strong> — ${escapeHtml(formatDateKey(s.start))} → ${escapeHtml(formatDateKey(s.end))} (${s.days} days)</li>`;
+          }
+        }
+        summaryHtml += '</ul></div>';
+      }
       document.getElementById('summary').innerHTML = summaryHtml;
+
+      const streakLegend = document.getElementById('streakLegend');
+      if (streakLegend) {
+        streakLegend.textContent = `Part of a ${maxDays + 1}+ consecutive work-day streak`;
+      }
 
       document.getElementById('otLegend').style.display = otEligibleMap ? '' : 'none';
       if (otEligibleMap && otShiftLabel) {
@@ -2156,10 +2402,10 @@
         return;
       }
 
-      const { schedule, dates, dateLabels, personOrder } = gridMeta || {};
+      const { schedule, dates, dateLabels, personOrder, periodStartKeys } = gridMeta || {};
       if (dates?.length && schedule?.length) {
         container.innerHTML = renderScheduleGrid(
-          results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex
+          results, schedule, dates, dateLabels, personOrder, otEligibleMap, otShiftLabel, selectedColIndex, periodStartKeys
         );
         updateOtDayPanel();
         return;
@@ -2173,7 +2419,8 @@
       return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    let scheduleData = '';
+    const MAX_PAY_PERIODS = 3;
+    let payPeriods = [];
     let analyzeTimer = null;
     let lastResults = null;
     let lastGridMeta = null;
@@ -2181,6 +2428,31 @@
     let otEligibleMap = null;
     let otShiftLabel = null;
     let selectedColIndex = null;
+
+    function renderPayPeriodSlots() {
+      const wrap = document.getElementById('payPeriodSlots');
+      const clearBtn = document.getElementById('btnClearPeriods');
+      if (!wrap) return;
+      let html = '';
+      for (let i = 0; i < MAX_PAY_PERIODS; i++) {
+        const p = payPeriods[i];
+        if (p) {
+          html += `<div class="pay-period-slot loaded">
+            <div class="pp-kicker">Pay period ${i + 1}</div>
+            <div class="pp-range">${escapeHtml(p.label)}</div>
+            <div class="pp-meta">${p.dayCount} day${p.dayCount === 1 ? '' : 's'}</div>
+            <button type="button" class="pp-clear" data-clear-period="${i}">Remove</button>
+          </div>`;
+        } else {
+          html += `<div class="pay-period-slot empty">
+            <div class="pp-kicker">Pay period ${i + 1}</div>
+            <div class="pp-empty">Not loaded — copy from WMT, then Add Pay Period</div>
+          </div>`;
+        }
+      }
+      wrap.innerHTML = html;
+      if (clearBtn) clearBtn.style.display = payPeriods.length ? '' : 'none';
+    }
 
     function refreshGridView() {
       if (!lastResults || !lastGridMeta) return;
@@ -2190,7 +2462,7 @@
     function scheduleAnalysis() {
       clearTimeout(analyzeTimer);
       analyzeTimer = setTimeout(() => {
-        if (scheduleData.trim()) runAnalysis();
+        if (payPeriods.length) runAnalysis();
         else if (lastResults) {
           if (document.getElementById('otShiftCode').value.trim()) checkOvertimeEligibility();
           else refreshGridView();
@@ -2255,13 +2527,25 @@
     }
 
     function runAnalysis() {
-      const text = scheduleData;
+      if (!payPeriods.length) {
+        lastResults = null;
+        lastShifts = null;
+        lastGridMeta = null;
+        otEligibleMap = null;
+        otShiftLabel = null;
+        selectedColIndex = null;
+        document.getElementById('summarySection').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'none';
+        return;
+      }
+
       const minRestMs = (+document.getElementById('minRestHours').value || 10) * 3600000;
       const maxConsecutive = +document.getElementById('maxConsecutiveDays').value || 6;
 
       try {
-        const parsed = parseInput(text);
-        const { shifts, schedule, dates, dateLabels, personOrder, errors } = parsed;
+        const parsedList = payPeriods.map(p => parseInput(p.text));
+        const merged = mergeParsedResults(parsedList);
+        const { shifts, schedule, dates, dateLabels, personOrder, periodStartKeys, errors } = merged;
 
         if (!shifts.length && !(schedule && schedule.length)) {
           document.getElementById('parseError').style.display = 'block';
@@ -2275,7 +2559,7 @@
         const results = analyzeShifts(shifts, schedule || [], minRestMs, maxConsecutive);
         lastResults = results;
         lastShifts = shifts;
-        lastGridMeta = { schedule, dates, dateLabels, personOrder };
+        lastGridMeta = { schedule, dates, dateLabels, personOrder, periodStartKeys };
         otEligibleMap = null;
         otShiftLabel = null;
         selectedColIndex = null;
@@ -2298,7 +2582,52 @@
         document.getElementById('parseError').textContent = 'Clipboard is empty.';
         return;
       }
-      scheduleData = text;
+
+      try {
+        const parsed = parseInput(text);
+        if (!parsed.shifts?.length && !(parsed.schedule && parsed.schedule.length)) {
+          document.getElementById('parseError').style.display = 'block';
+          document.getElementById('parseError').textContent = (parsed.errors || []).join(' ') || 'No shifts found in pasted data.';
+          return;
+        }
+
+        const meta = describePeriodRange(parsed);
+        const existing = payPeriods.findIndex(p => p.startKey === meta.startKey && p.endKey === meta.endKey);
+        if (existing >= 0) {
+          payPeriods[existing] = { text, ...meta };
+        } else if (payPeriods.length >= MAX_PAY_PERIODS) {
+          document.getElementById('parseError').style.display = 'block';
+          document.getElementById('parseError').textContent =
+            '3 pay periods are already loaded. Remove one, or paste the same date range again to replace it.';
+          return;
+        } else {
+          payPeriods.push({ text, ...meta });
+          payPeriods.sort((a, b) => a.startKey.localeCompare(b.startKey));
+        }
+
+        document.getElementById('parseError').style.display = 'none';
+        renderPayPeriodSlots();
+        runAnalysis();
+      } catch (e) {
+        document.getElementById('parseError').style.display = 'block';
+        document.getElementById('parseError').textContent = e.message;
+      }
+    }
+
+    function clearPayPeriod(index) {
+      payPeriods.splice(index, 1);
+      renderPayPeriodSlots();
+      if (payPeriods.length) runAnalysis();
+      else {
+        document.getElementById('parseError').style.display = 'none';
+        runAnalysis();
+      }
+    }
+
+    function clearAllPayPeriods() {
+      payPeriods = [];
+      renderPayPeriodSlots();
+      document.getElementById('parseError').style.display = 'none';
       runAnalysis();
     }
 
@@ -2316,6 +2645,12 @@
     // ── Event listeners ──
     document.getElementById('btnClipboard').addEventListener('click', readClipboard);
     document.getElementById('btnCheckOT').addEventListener('click', checkOvertimeEligibility);
+    document.getElementById('btnClearPeriods').addEventListener('click', clearAllPayPeriods);
+    document.getElementById('payPeriodSlots').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-clear-period]');
+      if (!btn) return;
+      clearPayPeriod(parseInt(btn.dataset.clearPeriod, 10));
+    });
 
     const settingsMenu = document.getElementById('settingsMenu');
     const btnMenu = document.getElementById('btnMenu');
@@ -2339,12 +2674,14 @@
 
     document.getElementById('areaSelect').addEventListener('change', (e) => {
       setActiveArea(e.target.value);
-      if (scheduleData.trim()) runAnalysis();
+      if (payPeriods.length) runAnalysis();
       else if (lastResults && document.getElementById('otShiftCode').value.trim()) checkOvertimeEligibility();
     });
     updateAreaSelectUI();
+    renderPayPeriodSlots();
 
     document.addEventListener('paste', (e) => {
+      if (e.target.closest('input, textarea')) return;
       const text = e.clipboardData?.getData('text');
       if (text?.trim()) {
         e.preventDefault();
