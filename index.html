@@ -1550,8 +1550,76 @@
       return /^[A-Z]{2}\s*-\s*.+/i.test(label);
     }
 
+    /** WMT reprints NAME/date headers after every ~6 people (Submit row). Those are not a new pay period. */
+    function isRepeatedSectionHeader(newDates, existingDates) {
+      if (!existingDates?.length || !newDates?.length) return false;
+      const oldKeys = new Set(existingDates.map(dateKey));
+      const overlap = newDates.filter(d => oldKeys.has(dateKey(d))).length;
+      return overlap >= Math.min(3, newDates.length);
+    }
+
+    const WMT_DATE_TOKEN = /^(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+\d{1,2}\/\d{1,2}\/\d{4}$/i;
+    const WMT_PERSON_TOKEN = /^[A-Z]{2}\s*-\s*[A-Za-z]+(?:\s+JR)?$/i;
+    const WMT_STAFFING_TOKEN = /^(Mid|Day|Swing|Mid-Day)$/i;
+    const WMT_CHROME_TOKEN = /^(WMT|Published|Print|Welcome|Home|Logout|Schedules|Version|Seniority|Today's|You)$/i;
+
+    /** Chrome print copies often dump the whole grid as one space-separated line. */
+    function tokenizeWMTPrint(text) {
+      const dateTok = '(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\\s+\\d{1,2}/\\d{1,2}/\\d{4}';
+      const personTok = '[A-Z]{2}\\s*-\\s*[A-Za-z]+(?:\\s+JR)?';
+      const re = new RegExp(`${dateTok}|${personTok}|A<[^>]+>|Name|Mid-Day|\\S+`, 'gi');
+      const tokens = [];
+      const src = String(text || '').replace(/\u00a0/g, ' ');
+      let m;
+      while ((m = re.exec(src))) tokens.push(m[0].trim());
+      return tokens.filter(Boolean);
+    }
+
+    function expandWMTPrintBlobs(text) {
+      const tokens = tokenizeWMTPrint(text);
+      if (!tokens.length) return '';
+      const lines = [];
+      let dateCount = 0;
+      let i = 0;
+      while (i < tokens.length) {
+        const t = tokens[i];
+        const isName = /^Name$/i.test(t);
+        if (isName || WMT_DATE_TOKEN.test(t)) {
+          if (isName) i++;
+          const dates = [];
+          while (i < tokens.length && WMT_DATE_TOKEN.test(tokens[i])) {
+            dates.push(tokens[i]);
+            i++;
+          }
+          if (dates.length >= 3) {
+            dateCount = dates.length;
+            lines.push(['Name', ...dates].join('\t'));
+          }
+          continue;
+        }
+        if (WMT_PERSON_TOKEN.test(t)) {
+          const cells = [];
+          i++;
+          const limit = dateCount || 14;
+          while (i < tokens.length && cells.length < limit) {
+            const n = tokens[i];
+            if (WMT_PERSON_TOKEN.test(n) || WMT_DATE_TOKEN.test(n) || /^Name$/i.test(n) ||
+                WMT_STAFFING_TOKEN.test(n) || WMT_CHROME_TOKEN.test(n)) break;
+            cells.push(n);
+            i++;
+          }
+          if (cells.length >= 3) lines.push([t, ...cells].join('\t'));
+          continue;
+        }
+        i++;
+      }
+      return lines.join('\n');
+    }
+
     function cleanWMTLines(text) {
-      return text.split(/\r?\n/)
+      const expanded = expandWMTPrintBlobs(text);
+      const combined = expanded ? `${expanded}\n${text}` : text;
+      return combined.split(/\r?\n/)
         .map(l => l.trim())
         .filter(l => l.includes('\t') && l.length < 2000);
     }
@@ -1587,6 +1655,15 @@
         if (label.toUpperCase() === 'NAME' || /\d{1,2}\/\d{1,2}\/\d{4}/.test(cols[1] || '')) {
           const parsedDates = cols.slice(1).map(parseWMTDateHeader).filter(Boolean);
           if (parsedDates.length >= 3) {
+            if (isRepeatedSectionHeader(parsedDates, currentDates)) {
+              interpretations.push({
+                lineNum: i + 1,
+                status: 'header',
+                raw: label + ' | ' + cols.slice(1, 4).join(' | ') + ' …',
+                note: 'Repeated WMT section header — keeping the original date columns so later people stay aligned'
+              });
+              continue;
+            }
             currentDates = parsedDates;
             headerCount++;
             const labels = cols.slice(1, 1 + parsedDates.length)
